@@ -1,0 +1,599 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: #f2f4f7;
+  color: #123047;
+}
+
+.app-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-header {
+  background: linear-gradient(90deg, #0b4f71, #1572a6);
+  color: #fff;
+  padding: 16px 32px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.app-header h1 {
+  margin: 0 0 4px 0;
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.app-header p {
+  margin: 0;
+  font-size: 14px;
+  opacity: 0.9;
+}
+
+.app-main {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  gap: 16px;
+  padding: 16px 24px 24px;
+}
+
+.filters-panel {
+  background: #ffffff;
+  border-radius: 8px;
+  padding: 16px 14px;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.12);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.filters-panel h2 {
+  margin: 0 0 8px 0;
+  font-size: 16px;
+}
+
+.filters-panel label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+}
+
+.filters-panel select,
+.filters-panel input[type="number"] {
+  padding: 6px 8px;
+  border-radius: 4px;
+  border: 1px solid #cbd5e1;
+  font-size: 13px;
+}
+
+.filters-panel input[type="number"] {
+  width: 100%;
+}
+
+.filters-panel input[type="number"] + input[type="number"] {
+  margin-top: 4px;
+}
+
+#apply-filters {
+  margin-top: 8px;
+  padding: 8px 10px;
+  border-radius: 4px;
+  border: none;
+  background: #198754;
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+#apply-filters:hover {
+  background: #157347;
+}
+
+.hint {
+  margin-top: 12px;
+  font-size: 11px;
+  color: #475569;
+}
+
+.hint ul {
+  padding-left: 18px;
+  margin: 4px 0 0 0;
+}
+
+.hint code {
+  background: #e2e8f0;
+  border-radius: 3px;
+  padding: 1px 3px;
+}
+
+.main-panel {
+  background: #ffffff;
+  border-radius: 8px;
+  padding: 16px 18px 18px;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.12);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.tabs {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  border-bottom: 1px solid #e2e8f0;
+  padding-bottom: 4px;
+}
+
+.tab {
+  border: none;
+  background: transparent;
+  padding: 6px 12px;
+  border-radius: 6px 6px 0 0;
+  font-size: 13px;
+  cursor: pointer;
+  color: #64748b;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.tab.active {
+  background: #0f172a;
+  color: #ffffff;
+}
+
+.tab-panel {
+  display: none;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.tab-panel.active {
+  display: flex;
+}
+
+.validation-intro {
+  font-size: 13px;
+  line-height: 1.5;
+  color: #334155;
+  max-width: 900px;
+}
+
+.validation-subheading {
+  margin: 8px 0 4px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.validation-chart-wrap {
+  position: relative;
+  height: 280px;
+  max-width: 720px;
+}
+
+.validation-metrics-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.validation-metrics-table th,
+.validation-metrics-table td {
+  border: 1px solid #e2e8f0;
+  padding: 8px 10px;
+  text-align: left;
+}
+
+.validation-metrics-table th {
+  background: #f1f5f9;
+  font-weight: 600;
+}
+
+.validation-metrics-table td.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.validation-metrics-table th:nth-child(2),
+.validation-metrics-table td:nth-child(2) {
+  min-width: 7.5rem;
+  max-width: 18rem;
+  white-space: normal;
+  word-break: break-word;
+}
+
+.validation-ml-note {
+  font-size: 11px;
+  color: #64748b;
+  max-width: 900px;
+}
+
+.validation-details {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 0 12px;
+  margin-top: 8px;
+}
+
+.validation-details summary {
+  cursor: pointer;
+  padding: 10px 0;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.validation-mini-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+  margin-bottom: 12px;
+}
+
+.validation-mini-table th,
+.validation-mini-table td {
+  border: 1px solid #e2e8f0;
+  padding: 4px 8px;
+}
+
+.validation-mini-table td.num {
+  text-align: right;
+}
+
+.validation-mini-table td.metric-na {
+  color: #94a3b8;
+}
+
+.validation-mini-footnote {
+  font-size: 11px;
+  color: #64748b;
+  line-height: 1.4;
+  margin: 8px 0 0 0;
+  max-width: 52rem;
+}
+
+.layout-2col {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.map-panel h2,
+.charts-panel h2,
+.additional-insights h2 {
+  margin: 0 0 6px 0;
+  font-size: 15px;
+}
+
+.map-container {
+  width: 100%;
+  height: 440px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  overflow: hidden;
+  position: relative;
+}
+
+.map-frame {
+  position: relative;
+}
+
+.map-actions {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 1200;
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.export-dropdown {
+  position: relative;
+}
+
+.export-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 4px;
+  min-width: 220px;
+  padding: 6px;
+  border-radius: 8px;
+  border: 1px solid rgba(15, 23, 42, 0.2);
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.15);
+  z-index: 1300;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.export-menu[hidden] {
+  display: none !important;
+}
+
+.export-menu button {
+  text-align: left;
+  padding: 8px 10px;
+  border: none;
+  border-radius: 6px;
+  background: #f1f5f9;
+  font-size: 12px;
+  cursor: pointer;
+  color: #0f172a;
+}
+
+.export-menu button:hover {
+  background: #e2e8f0;
+}
+
+.basin-label {
+  font-size: 10px !important;
+  font-weight: 600 !important;
+  color: #1e40af !important;
+  text-shadow: 0 0 2px #fff, 0 0 4px #fff !important;
+  pointer-events: none !important;
+  white-space: nowrap !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* Basin vector paths don’t capture drags (pan/zoom stay smooth) */
+.leaflet-pane path.basin-outline-path {
+  pointer-events: none !important;
+}
+
+.chart-scope-note {
+  margin: 0 0 6px 0;
+  font-size: 11px;
+  color: #0f766e;
+  font-weight: 500;
+}
+
+.map-fullscreen,
+.map-export-btn {
+  padding: 7px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(15, 23, 42, 0.25);
+  background: rgba(255, 255, 255, 0.92);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.map-fullscreen:hover,
+.map-export-btn:hover {
+  background: rgba(255, 255, 255, 1);
+}
+
+.map-overlay-hint {
+  position: absolute;
+  left: 10px;
+  bottom: 10px;
+  z-index: 1200;
+  max-width: 70%;
+  padding: 6px 8px;
+  border-radius: 8px;
+  border: 1px solid rgba(15, 23, 42, 0.2);
+  background: rgba(255, 255, 255, 0.92);
+  font-size: 12px;
+  color: #475569;
+}
+
+.map-legend {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  z-index: 1200;
+  width: 240px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(15, 23, 42, 0.2);
+  background: rgba(248, 250, 252, 0.92);
+  font-size: 12px;
+}
+
+.legend-title {
+  font-weight: 700;
+  margin-bottom: 6px;
+  color: #0f172a;
+}
+
+.legend-items {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px 10px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.legend-swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  border: 1px solid rgba(15, 23, 42, 0.4);
+}
+
+.map-frame:fullscreen .map-container {
+  height: 100vh;
+  border-radius: 0;
+}
+
+.map-frame:fullscreen .map-legend {
+  bottom: 16px;
+  right: 16px;
+}
+
+.map-frame:fullscreen .map-overlay-hint {
+  bottom: 16px;
+  left: 16px;
+}
+
+.map-frame:fullscreen .map-actions {
+  top: 16px;
+  right: 16px;
+}
+
+.leaflet-interactive {
+  cursor: pointer;
+}
+
+.year-control {
+  margin-top: 8px;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.year-control label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.year-control input[type="range"] {
+  flex: 1;
+}
+
+.year-control #year-label {
+  min-width: 3.25rem;
+  flex-shrink: 0;
+  text-align: right;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.map-note {
+  margin: 6px 0 0 0;
+  font-size: 11px;
+  color: #64748b;
+}
+
+.charts-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.chart-block {
+  background: #f8fafc;
+  border-radius: 8px;
+  padding: 10px 10px 12px;
+  border: 1px solid #e2e8f0;
+  overflow: visible;
+}
+
+/*
+ * Fixed-height plot area so Chart.js (maintainAspectRatio: false) cannot grow
+ * with the stretched main panel / viewport — otherwise the trend block expands
+ * without bound.
+ */
+.chart-block-trend {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: visible;
+}
+
+.trend-chart-wrap {
+  position: relative;
+  flex: 0 0 220px;
+  width: 100%;
+  height: 220px;
+  min-height: 220px;
+  max-height: 220px;
+  overflow: visible;
+}
+
+.trend-chart-wrap canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* Distribution chart: doughnut left, legend right inside the block */
+.chart-block-distribution {
+  height: 340px;
+  overflow: visible;
+}
+
+.distribution-chart-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  height: 260px;
+}
+
+.distribution-chart-inner {
+  flex: 0 0 260px;
+  height: 260px;
+  position: relative;
+}
+
+.distribution-chart-inner canvas {
+  width: 260px !important;
+  height: 260px !important;
+}
+
+.distribution-legend {
+  flex: 1;
+  align-self: center;
+  font-size: 13px;
+  line-height: 1.8;
+  display: flex;
+  flex-direction: column;
+  flex-wrap: wrap;
+  max-height: 260px;
+  gap: 2px 24px;
+}
+
+.distribution-legend .legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.distribution-legend .legend-swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.additional-insights {
+  margin-top: 4px;
+  padding-top: 8px;
+  border-top: 1px solid #e2e8f0;
+  font-size: 13px;
+  color: #475569;
+}
+
+@media (max-width: 960px) {
+  .app-main {
+    grid-template-columns: 1fr;
+  }
+  .layout-2col {
+    grid-template-columns: 1fr;
+  }
+}
+

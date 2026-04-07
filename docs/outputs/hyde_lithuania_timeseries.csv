@@ -1,0 +1,229 @@
+year,class_id,class_name,count
+1900,3,Urban,1
+1900,4,Agriculture,1231
+1900,5,Natural (residual),78
+1910,3,Urban,1
+1910,4,Agriculture,1231
+1910,5,Natural (residual),78
+1920,3,Urban,1
+1920,4,Agriculture,1230
+1920,5,Natural (residual),79
+1930,3,Urban,2
+1930,4,Agriculture,1229
+1930,5,Natural (residual),79
+1940,3,Urban,2
+1940,4,Agriculture,1231
+1940,5,Natural (residual),77
+1950,3,Urban,2
+1950,4,Agriculture,1228
+1950,5,Natural (residual),80
+1951,3,Urban,2
+1951,4,Agriculture,1227
+1951,5,Natural (residual),81
+1952,3,Urban,2
+1952,4,Agriculture,1227
+1952,5,Natural (residual),81
+1953,3,Urban,2
+1953,4,Agriculture,1227
+1953,5,Natural (residual),81
+1954,3,Urban,2
+1954,4,Agriculture,1227
+1954,5,Natural (residual),81
+1955,3,Urban,2
+1955,4,Agriculture,1227
+1955,5,Natural (residual),81
+1956,3,Urban,2
+1956,4,Agriculture,1227
+1956,5,Natural (residual),81
+1957,3,Urban,2
+1957,4,Agriculture,1227
+1957,5,Natural (residual),81
+1958,3,Urban,2
+1958,4,Agriculture,1227
+1958,5,Natural (residual),81
+1959,3,Urban,2
+1959,4,Agriculture,1227
+1959,5,Natural (residual),81
+1960,3,Urban,2
+1960,4,Agriculture,1227
+1960,5,Natural (residual),81
+1961,3,Urban,2
+1961,4,Agriculture,1227
+1961,5,Natural (residual),81
+1962,3,Urban,2
+1962,4,Agriculture,1227
+1962,5,Natural (residual),81
+1963,3,Urban,2
+1963,4,Agriculture,1227
+1963,5,Natural (residual),81
+1964,3,Urban,3
+1964,4,Agriculture,1226
+1964,5,Natural (residual),81
+1965,3,Urban,3
+1965,4,Agriculture,1226
+1965,5,Natural (residual),81
+1966,3,Urban,3
+1966,4,Agriculture,1226
+1966,5,Natural (residual),81
+1967,3,Urban,3
+1967,4,Agriculture,1226
+1967,5,Natural (residual),81
+1968,3,Urban,3
+1968,4,Agriculture,1226
+1968,5,Natural (residual),81
+1969,3,Urban,3
+1969,4,Agriculture,1226
+1969,5,Natural (residual),81
+1970,3,Urban,4
+1970,4,Agriculture,1225
+1970,5,Natural (residual),81
+1971,3,Urban,4
+1971,4,Agriculture,1225
+1971,5,Natural (residual),81
+1972,3,Urban,4
+1972,4,Agriculture,1225
+1972,5,Natural (residual),81
+1973,3,Urban,4
+1973,4,Agriculture,1225
+1973,5,Natural (residual),81
+1974,3,Urban,5
+1974,4,Agriculture,1224
+1974,5,Natural (residual),81
+1975,3,Urban,5
+1975,4,Agriculture,1224
+1975,5,Natural (residual),81
+1976,3,Urban,5
+1976,4,Agriculture,1224
+1976,5,Natural (residual),81
+1977,3,Urban,5
+1977,4,Agriculture,1224
+1977,5,Natural (residual),81
+1978,3,Urban,5
+1978,4,Agriculture,1223
+1978,5,Natural (residual),82
+1979,3,Urban,5
+1979,4,Agriculture,1223
+1979,5,Natural (residual),82
+1980,3,Urban,5
+1980,4,Agriculture,1223
+1980,5,Natural (residual),82
+1981,3,Urban,6
+1981,4,Agriculture,1222
+1981,5,Natural (residual),82
+1982,3,Urban,7
+1982,4,Agriculture,1222
+1982,5,Natural (residual),81
+1983,3,Urban,7
+1983,4,Agriculture,1222
+1983,5,Natural (residual),81
+1984,3,Urban,7
+1984,4,Agriculture,1222
+1984,5,Natural (residual),81
+1985,3,Urban,7
+1985,4,Agriculture,1222
+1985,5,Natural (residual),81
+1986,3,Urban,7
+1986,4,Agriculture,1222
+1986,5,Natural (residual),81
+1987,3,Urban,7
+1987,4,Agriculture,1222
+1987,5,Natural (residual),81
+1988,3,Urban,7
+1988,4,Agriculture,1222
+1988,5,Natural (residual),81
+1989,3,Urban,7
+1989,4,Agriculture,1222
+1989,5,Natural (residual),81
+1990,3,Urban,7
+1990,4,Agriculture,1222
+1990,5,Natural (residual),81
+1991,3,Urban,7
+1991,4,Agriculture,1221
+1991,5,Natural (residual),82
+1992,3,Urban,7
+1992,4,Agriculture,1220
+1992,5,Natural (residual),83
+1993,3,Urban,8
+1993,4,Agriculture,1219
+1993,5,Natural (residual),83
+1994,3,Urban,8
+1994,4,Agriculture,1218
+1994,5,Natural (residual),84
+1995,3,Urban,7
+1995,4,Agriculture,1222
+1995,5,Natural (residual),81
+1996,3,Urban,7
+1996,4,Agriculture,1221
+1996,5,Natural (residual),82
+1997,3,Urban,8
+1997,4,Agriculture,1219
+1997,5,Natural (residual),83
+1998,3,Urban,8
+1998,4,Agriculture,1218
+1998,5,Natural (residual),84
+1999,3,Urban,7
+1999,4,Agriculture,1221
+1999,5,Natural (residual),82
+2000,3,Urban,9
+2000,4,Agriculture,1219
+2000,5,Natural (residual),82
+2001,3,Urban,10
+2001,4,Agriculture,1190
+2001,5,Natural (residual),110
+2002,3,Urban,11
+2002,4,Agriculture,1190
+2002,5,Natural (residual),109
+2003,3,Urban,14
+2003,4,Agriculture,1177
+2003,5,Natural (residual),119
+2004,3,Urban,12
+2004,4,Agriculture,1185
+2004,5,Natural (residual),113
+2005,3,Urban,12
+2005,4,Agriculture,1204
+2005,5,Natural (residual),94
+2006,3,Urban,12
+2006,4,Agriculture,1203
+2006,5,Natural (residual),95
+2007,3,Urban,15
+2007,4,Agriculture,1197
+2007,5,Natural (residual),98
+2008,3,Urban,13
+2008,4,Agriculture,1199
+2008,5,Natural (residual),98
+2009,3,Urban,13
+2009,4,Agriculture,1209
+2009,5,Natural (residual),88
+2010,3,Urban,13
+2010,4,Agriculture,1212
+2010,5,Natural (residual),85
+2011,3,Urban,14
+2011,4,Agriculture,1211
+2011,5,Natural (residual),85
+2012,3,Urban,14
+2012,4,Agriculture,1211
+2012,5,Natural (residual),85
+2013,3,Urban,12
+2013,4,Agriculture,1212
+2013,5,Natural (residual),86
+2014,3,Urban,10
+2014,4,Agriculture,1214
+2014,5,Natural (residual),86
+2015,3,Urban,11
+2015,4,Agriculture,1213
+2015,5,Natural (residual),86
+2016,3,Urban,11
+2016,4,Agriculture,1213
+2016,5,Natural (residual),86
+2017,3,Urban,11
+2017,4,Agriculture,1213
+2017,5,Natural (residual),86
+2018,3,Urban,11
+2018,4,Agriculture,1213
+2018,5,Natural (residual),86
+2019,3,Urban,10
+2019,4,Agriculture,1214
+2019,5,Natural (residual),86
+2020,3,Urban,10
+2020,4,Agriculture,1214
+2020,5,Natural (residual),86

@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Lithuania Land Cover Dashboard</title>
+  <link rel="stylesheet" href="styles.css" />
+  <!-- Leaflet -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+    crossorigin=""
+  />
+  <script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+    crossorigin=""
+  ></script>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <!-- GeoTIFF raster display (all datasets) -->
+  <script src="https://unpkg.com/georaster@1.6.0/dist/georaster.browser.bundle.min.js"></script>
+  <script src="https://unpkg.com/georaster-layer-for-leaflet@0.4.1/georaster-layer-for-leaflet.browserify.min.js"></script>
+  <!-- Map export (html-to-image handles Leaflet transforms better than html2canvas alone) -->
+  <script src="https://cdn.jsdelivr.net/npm/html-to-image@1.11.11/dist/html-to-image.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <!-- Excel workbook (national + sub-basin table) -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <!-- Excel with embedded images (charts as PNG); fallback to SheetJS-only if blocked -->
+  <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="app-header">
+      <h1>Lithuania Land Cover Data Analysis Dashboard</h1>
+      <p>Exploratory analysis of multiple land cover datasets</p>
+    </header>
+
+    <main class="app-main">
+      <aside class="filters-panel">
+        <h2>Filters</h2>
+
+        <label>
+          <span>Dataset</span>
+          <select id="dataset-select">
+            <option value="hilda">HILDA+ v2.0 (Lithuania)</option>
+            <option value="lucas">LUCAS_LUC (Lithuania)</option>
+            <option value="hyde">HYDE 3.4 (Lithuania)</option>
+            <option value="luh2">LUH2 v2h (Lithuania)</option>
+            <option value="corine">CORINE CLC (validation)</option>
+          </select>
+        </label>
+
+        <label>
+          <span>Class</span>
+          <select id="class-select">
+            <!-- Populated dynamically -->
+          </select>
+        </label>
+
+        <label>
+          <span>Sub-basin</span>
+          <select id="basin-select">
+            <option value="">All Lithuania (national charts)</option>
+            <!-- Populated from lt_subbasins.json; charts use outputs/subbasin_zonal_*.csv if present -->
+          </select>
+        </label>
+
+        <label>
+          <span>Year range</span>
+          <input type="number" id="year-from" placeholder="From" />
+          <input type="number" id="year-to" placeholder="To" />
+        </label>
+
+        <button id="apply-filters">Apply filters</button>
+
+        <div class="hint">
+          <p>Summary tables load from CSV files in <code>outputs/</code>.</p>
+        </div>
+      </aside>
+
+      <section class="main-panel">
+        <div class="tabs">
+          <button type="button" class="tab active" data-tab="historical">Historical analysis</button>
+          <button type="button" class="tab" data-tab="validation">Validation vs CORINE</button>
+          <button type="button" class="tab" data-tab="future">Future analysis (placeholder)</button>
+        </div>
+
+        <div id="panel-historical" class="tab-panel active" data-panel="historical">
+        <div class="layout-2col">
+          <section class="map-panel">
+            <h2>Land cover map</h2>
+            <div class="map-frame">
+              <div id="map" class="map-container"></div>
+              <div class="map-actions">
+                <button id="map-fullscreen" class="map-fullscreen" type="button">
+                  Full screen
+                </button>
+                <div class="export-dropdown" id="export-dropdown">
+                  <button type="button" id="export-menu-btn" class="map-export-btn" aria-expanded="false" aria-haspopup="true">
+                    Export ▾
+                  </button>
+                  <div id="export-menu" class="export-menu" role="menu" hidden>
+                    <button type="button" role="menuitem" data-export="map-png">Map view (PNG)</button>
+                    <button type="button" role="menuitem" data-export="basin-png">Sub-basin map (PNG)</button>
+                    <button type="button" role="menuitem" data-export="excel-xlsx">Summary (Excel — filters: years, basin, class)</button>
+                  </div>
+                </div>
+              </div>
+              <div id="map-overlay-hint" class="map-overlay-hint" aria-live="polite"></div>
+              <div id="map-legend" class="map-legend" aria-label="Map legend">
+                <!-- Filled dynamically -->
+              </div>
+            </div>
+            <div class="year-control">
+              <label>
+                <span>Year on map</span>
+                <input type="range" id="year-slider" min="0" max="0" step="1" value="0" />
+                <span id="year-label">—</span>
+              </label>
+            </div>
+            <p class="map-note">
+              Base map © OpenStreetMap contributors. Sub-basin boundaries when a basin is selected.
+              The map year slider updates the land cover layer; filters apply to the charts.
+            </p>
+          </section>
+
+          <section class="charts-panel">
+            <div class="chart-block chart-block-trend">
+              <h2>Trend analysis</h2>
+              <p id="trend-scope-note" class="chart-scope-note" hidden></p>
+              <div class="trend-chart-wrap">
+                <canvas id="trend-chart"></canvas>
+              </div>
+            </div>
+
+            <div class="chart-block chart-block-distribution">
+              <h2>Land cover distribution (map year)</h2>
+              <p id="distribution-scope-note" class="chart-scope-note" hidden></p>
+              <div class="distribution-chart-wrapper">
+                <div class="distribution-chart-inner">
+                  <canvas id="distribution-chart"></canvas>
+                </div>
+                <div id="distribution-legend" class="distribution-legend"></div>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <section class="additional-insights">
+          <h2>Additional insights</h2>
+          <p>Reserved for extra indicators.</p>
+        </section>
+        </div>
+
+        <div id="panel-validation" class="tab-panel" data-panel="validation">
+          <h2>Validation vs CORINE</h2>
+          <p class="validation-intro" id="validation-description"></p>
+          <p class="validation-ml-note" id="validation-generated" hidden></p>
+          <p id="validation-error" class="chart-scope-note" hidden></p>
+          <div class="validation-chart-wrap">
+            <canvas id="validation-rmse-chart" aria-label="RMSE vs CORINE by dataset"></canvas>
+          </div>
+          <h3 class="validation-subheading">Summary (national)</h3>
+          <div style="overflow-x: auto">
+            <table class="validation-metrics-table" id="validation-summary-table">
+              <thead>
+                <tr>
+                  <th>Dataset</th>
+                  <th>Years</th>
+                  <th class="num">RMSE (share)</th>
+                  <th class="num">MAE (share)</th>
+                  <th class="num">R² (flat)</th>
+                  <th class="num">Mean r (classes)</th>
+                  <th class="num">Cosine μ</th>
+                  <th class="num">RF LOYO RMSE</th>
+                  <th class="num">Ridge LOYO RMSE</th>
+                  <th class="num">Sub-basin RMSE†</th>
+                </tr>
+              </thead>
+              <tbody id="validation-summary-body"></tbody>
+            </table>
+          </div>
+          <p class="validation-ml-note" id="validation-ml-note"></p>
+          <p class="validation-ml-note" id="validation-footnotes"></p>
+          <h3 class="validation-subheading">Per-class (national)</h3>
+          <div id="validation-per-dataset"></div>
+        </div>
+
+        <div id="panel-future" class="tab-panel" data-panel="future">
+          <h2>Future analysis</h2>
+          <p class="validation-intro">Reserved for scenarios or projections.</p>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
+

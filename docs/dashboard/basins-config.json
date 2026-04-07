@@ -1,0 +1,24 @@
+{
+  "description": "Display names for Lithuania sub-basins. Maps OBJECTID from lt_subbasins.json to formal names. Overrides PAVADINIMA when missing or '-'.",
+  "namesByObjectId": {
+    "673": "Nemuno mažųjų intakų (su Nemunu) pabaseinis",
+    "674": "Merkio pabaseinis",
+    "675": "Šešupės pabaseinis",
+    "676": "Bartuvos baseinas",
+    "677": "Neries mažųjų intakų (su Nerimi) pabaseinis",
+    "678": "Ventos baseinas",
+    "679": "Žeimenos pabaseinis",
+    "680": "Minijos pabaseinis",
+    "681": "Dauguvos baseinas",
+    "682": "Šventosios pabaseinis",
+    "683": "Priegliaus baseinas",
+    "684": "Dubysos pabaseinis",
+    "685": "Jūros pabaseinis",
+    "686": "Nevėžio pabaseinis",
+    "687": "Lietuvos pajūrio upių baseinas",
+    "688": "Lielupės mažųjų intakų pabaseinis",
+    "689": "Šventosios baseinas",
+    "690": "Mūšos pabaseinis",
+    "691": "Nemunėlio pabaseinis"
+  }
+}
