@@ -13,6 +13,183 @@ function parseCsv(text) {
   });
 }
 
+/**
+ * Resolve repo-root files (outputs/, rasters/, lt_subbasins.json) when the page is served from
+ * .../dashboard/ — avoids broken relative URLs on GitHub Pages if the pathname omits a trailing slash.
+ */
+function resolveDataFileUrl(relFromRepoRoot) {
+  const clean = String(relFromRepoRoot || "").replace(/^\/+/, "");
+  if (window.location.protocol === "file:") {
+    try {
+      return new URL(`../${clean}`, window.location.href).href;
+    } catch {
+      return `../${clean}`;
+    }
+  }
+  const pathname = window.location.pathname || "";
+  const parts = pathname.split("/").filter(Boolean);
+  const dIdx = parts.indexOf("dashboard");
+  if (dIdx < 0) {
+    try {
+      return new URL(`../${clean}`, window.location.href).href;
+    } catch {
+      return `../${clean}`;
+    }
+  }
+  const rootParts = parts.slice(0, dIdx);
+  const basePath = rootParts.length ? `/${rootParts.join("/")}` : "";
+  const origin = window.location.origin || "";
+  return `${origin}${basePath}/${clean}`;
+}
+
+/** Drop "baseinas" / "pabaseinis" wording from hydrology labels (map + list). */
+function sanitizeBasinDisplayName(raw) {
+  if (raw == null) return raw;
+  let s = String(raw).trim();
+  s = s.replace(/\s*\(?\s*baseinas\s*\)?/gi, "");
+  s = s.replace(/\bbaseinas\b/gi, "");
+  s = s.replace(/\s*\(?\s*pabaseinio\b/gi, "");
+  s = s.replace(/\bpabaseinis\b/gi, "");
+  s = s.replace(/\bpabaseinių\b/gi, "");
+  s = s.replace(/\bpabaseiniai\b/gi, "");
+  s = s.replace(/\s{2,}/g, " ").trim();
+  return s || String(raw).trim();
+}
+
+function fitMapToBounds(map, bounds, options) {
+  if (!map || !bounds || !bounds.isValid()) return;
+  const size = map.getSize();
+  const minSide = Math.max(1, Math.min(size.x, size.y));
+  const pad = Math.max(12, Math.min(40, Math.round(minSide * 0.05)));
+  map.fitBounds(bounds, {
+    padding: [pad, pad],
+    animate: false,
+    maxZoom: 18,
+    ...options,
+  });
+}
+
+/** Lithuania overview — same bounds as initial map view. */
+const LT_OVERVIEW_BOUNDS = L.latLngBounds([53.5, 20.5], [56.6, 26.7]);
+
+const BASIN_STYLE_DEFAULT = {
+  className: "basin-outline-path",
+  color: "#64748b",
+  weight: 1.25,
+  fill: true,
+  fillColor: "#64748b",
+  fillOpacity: 0.02,
+};
+
+const BASIN_STYLE_SELECTED = {
+  className: "basin-outline-path basin-outline-selected",
+  color: "#c2410c",
+  weight: 4,
+  fill: true,
+  fillColor: "#ea580c",
+  fillOpacity: 0.12,
+};
+
+function basinFeatureStyle(feature, geojsonRef) {
+  const idx = geojsonRef.features.indexOf(feature);
+  const sel = state.map.selectedBasinIndex;
+  const selected = sel !== null && sel !== undefined && Number.isFinite(sel) && idx === sel;
+  return selected ? { ...BASIN_STYLE_SELECTED } : { ...BASIN_STYLE_DEFAULT };
+}
+
+function applyBasinOutlineHighlight(selectedBasinIndex) {
+  state.map.selectedBasinIndex =
+    selectedBasinIndex === null ||
+    selectedBasinIndex === undefined ||
+    selectedBasinIndex === "" ||
+    !Number.isFinite(selectedBasinIndex)
+      ? null
+      : selectedBasinIndex;
+  const layer = state.map.basinLayer;
+  const gj = state.map.subbasins;
+  if (!layer || typeof layer.setStyle !== "function" || !gj) return;
+  layer.setStyle((feature) => basinFeatureStyle(feature, gj));
+}
+
+function getCsvYearsSorted(datasetKey) {
+  const y = state.yearsByDataset[datasetKey] || [];
+  return [...new Set(y.filter((n) => Number.isFinite(n)))].sort((a, b) => a - b);
+}
+
+/** CORINE CLC snapshots only exist from 1990 onward in this project. */
+const CORINE_MIN_MAP_YEAR = 1990;
+
+/** Calendar years allowed on the map slider (CORINE clamped to valid CLC years). */
+function getYearsForMapSlider(datasetKey) {
+  const y = getCsvYearsSorted(datasetKey);
+  if (datasetKey === "corine") {
+    return y.filter((yr) => yr >= CORINE_MIN_MAP_YEAR);
+  }
+  return y;
+}
+
+/** Largest CSV / stats year ≤ calendarYear (same “floor” rule as the map raster). */
+function pickDataYearForCalendarYear(calendarYear, datasetKey) {
+  const ys = getYearsForMapSlider(datasetKey);
+  return pickRasterYearForCalendarYear(calendarYear, ys);
+}
+
+function getRasterYearsSorted(datasetKey) {
+  const r = state.rasterYearsByDataset[datasetKey];
+  if (r !== null && Array.isArray(r) && r.length) return r.slice().sort((a, b) => a - b);
+  return [];
+}
+
+/** Largest exported raster year ≤ calendarYear; if none, smallest available. */
+function pickRasterYearForCalendarYear(calendarYear, rasterYearsSorted) {
+  const ys = (rasterYearsSorted || []).filter((n) => Number.isFinite(n)).sort((a, b) => a - b);
+  if (!ys.length) return NaN;
+  if (calendarYear < ys[0]) return ys[0];
+  let pick = ys[0];
+  for (const y of ys) {
+    if (y <= calendarYear) pick = y;
+    else break;
+  }
+  return pick;
+}
+
+function formatMapYearLabel(calendarYear, rasterYear) {
+  if (!Number.isFinite(calendarYear)) return "—";
+  if (!Number.isFinite(rasterYear) || calendarYear === rasterYear) return String(calendarYear);
+  return `${calendarYear} → ${rasterYear}`;
+}
+
+/** Slider value = calendar year; returns { calendarYear, rasterYear } for map + zonal. */
+function readYearSliderMapPair(datasetKey) {
+  const yearSlider = document.getElementById("year-slider");
+  const calendarYear = yearSlider ? Number(yearSlider.value) : NaN;
+  if (!Number.isFinite(calendarYear)) return { calendarYear: NaN, rasterYear: NaN };
+  const rasterYs = getRasterYearsSorted(datasetKey);
+  let rasterYear = pickRasterYearForCalendarYear(calendarYear, rasterYs);
+  if (!Number.isFinite(rasterYear)) {
+    rasterYear = pickDataYearForCalendarYear(calendarYear, datasetKey);
+  }
+  if (!Number.isFinite(rasterYear)) rasterYear = calendarYear;
+  return { calendarYear, rasterYear };
+}
+
+function getZonalYearsForBasin(index, basinIndex) {
+  if (!(index instanceof Map) || !Number.isFinite(basinIndex)) return [];
+  const ys = new Set();
+  for (const key of index.keys()) {
+    const [bi, y] = key.split("|").map(Number);
+    if (bi === basinIndex && Number.isFinite(y)) ys.add(y);
+  }
+  return Array.from(ys).sort((a, b) => a - b);
+}
+
+/** Floor calendar year to latest zonal CSV year ≤ year; if none, same rule on raster years. */
+function pickSubbasinZonalYearForCalendar(index, basinIndex, calendarYear, datasetKey) {
+  const zonalYs = getZonalYearsForBasin(index, basinIndex);
+  if (zonalYs.length) return pickRasterYearForCalendarYear(calendarYear, zonalYs);
+  return pickRasterYearForCalendarYear(calendarYear, getRasterYearsSorted(datasetKey));
+}
+
 // Global state
 const state = {
   hilda: null,
@@ -40,6 +217,7 @@ const state = {
     basinLayer: null,
     subbasins: null,
     basinsConfig: null,
+    selectedBasinIndex: null,
   },
   charts: {
     trend: null,
@@ -49,6 +227,8 @@ const state = {
   subbasinZonal: {},
   /** datasetKey → Promise while CSV is loading */
   subbasinZonalLoading: {},
+  /** Latest fetch of outputs/dashboard_validation_metrics.json (for reference switcher) */
+  validationMetrics: null,
 };
 
 let applyFiltersSeq = 0;
@@ -102,7 +282,7 @@ async function ensureSubbasinZonalLoaded(datasetKey) {
 
   const p = (async () => {
     try {
-      const url = `../outputs/subbasin_zonal_${datasetKey}.csv`;
+      const url = resolveDataFileUrl(`outputs/subbasin_zonal_${datasetKey}.csv`);
       const resp = await fetch(url);
       if (!resp.ok) {
         state.subbasinZonal[datasetKey] = false;
@@ -227,7 +407,7 @@ async function loadData() {
   // For simplicity, we serve CSVs from Data/outputs/, so that the
   // static HTTP server rooted at Data can see them.
   try {
-    const hildaResp = await fetch("../outputs/hilda_lithuania_timeseries.csv");
+    const hildaResp = await fetch(resolveDataFileUrl("outputs/hilda_lithuania_timeseries.csv"));
     if (hildaResp.ok) {
       const txt = await hildaResp.text();
       state.hilda = parseCsv(txt).map((row) => ({
@@ -247,11 +427,12 @@ async function loadData() {
 
   try {
     // Updated to use full LUCAS time-series CSV
-    const lucasResp = await fetch("../outputs/lucas_lithuania_timeseries.csv");
+    const lucasResp = await fetch(resolveDataFileUrl("outputs/lucas_lithuania_timeseries.csv"));
     if (lucasResp.ok) {
       const txt = await lucasResp.text();
       state.lucas = parseCsv(txt).map((row) => ({
         year: Number(row.year),
+        class_id: row.class_id !== undefined && row.class_id !== "" ? Number(row.class_id) : NaN,
         class_name: row.class_name,
         count: Number(row.count),
       }));
@@ -265,7 +446,7 @@ async function loadData() {
   }
 
   try {
-    const hydeResp = await fetch("../outputs/hyde_lithuania_timeseries.csv");
+    const hydeResp = await fetch(resolveDataFileUrl("outputs/hyde_lithuania_timeseries.csv"));
     if (hydeResp.ok) {
       const txt = await hydeResp.text();
       state.hyde = parseCsv(txt).map((row) => ({
@@ -284,7 +465,7 @@ async function loadData() {
   }
 
   try {
-    const luh2Resp = await fetch("../outputs/luh2_lithuania_timeseries.csv");
+    const luh2Resp = await fetch(resolveDataFileUrl("outputs/luh2_lithuania_timeseries.csv"));
     if (luh2Resp.ok) {
       const txt = await luh2Resp.text();
       state.luh2 = parseCsv(txt).map((row) => ({
@@ -302,14 +483,16 @@ async function loadData() {
   }
 
   try {
-    const corResp = await fetch("../outputs/corine_lithuania_timeseries.csv");
+    const corResp = await fetch(resolveDataFileUrl("outputs/corine_lithuania_timeseries.csv"));
     if (corResp.ok) {
       const txt = await corResp.text();
-      state.corine = parseCsv(txt).map((row) => ({
-        year: Number(row.year),
-        class_name: row.class_name,
-        count: Number(row.count),
-      }));
+      state.corine = parseCsv(txt)
+        .map((row) => ({
+          year: Number(row.year),
+          class_name: row.class_name,
+          count: Number(row.count),
+        }))
+        .filter((r) => Number.isFinite(r.year) && r.year >= CORINE_MIN_MAP_YEAR);
       console.log("Loaded CORINE rows:", state.corine.length);
       state.yearsByDataset.corine = Array.from(new Set(state.corine.map((r) => r.year)))
         .filter(Number.isFinite)
@@ -321,18 +504,13 @@ async function loadData() {
 }
 
 function initMap() {
-  const boundsLt = [
-    [53.5, 20.5],
-    [56.6, 26.7],
-  ];
-
   const map = L.map("map", {
     zoomControl: true,
-    maxBounds: boundsLt,
+    maxBounds: LT_OVERVIEW_BOUNDS,
     maxBoundsViscosity: 1.0,
     /** Canvas paths align with raster/tiles in screenshots; SVG + html2canvas often shifts outlines */
     preferCanvas: true,
-  }).fitBounds(boundsLt, { padding: [12, 12] });
+  }).fitBounds(LT_OVERVIEW_BOUNDS, { padding: [12, 12] });
 
   map.createPane("basinOutlinePane");
   map.getPane("basinOutlinePane").style.zIndex = "450";
@@ -345,7 +523,7 @@ function initMap() {
   // Load basin config and sub-basins, then draw
   Promise.all([
     fetch("basins-config.json").then((r) => (r.ok ? r.json() : null)),
-    fetch("../lt_subbasins.json").then((r) => (r.ok ? r.json() : null)),
+    fetch(resolveDataFileUrl("lt_subbasins.json")).then((r) => (r.ok ? r.json() : null)),
   ]).then(([config, geojson]) => {
     if (!geojson) return;
     state.map.subbasins = geojson;
@@ -354,18 +532,26 @@ function initMap() {
     function getBasinName(feature, index) {
       const oid = String(feature.properties?.OBJECTID ?? index);
       const fromConfig = config?.namesByObjectId?.[oid];
-      if (fromConfig) return fromConfig;
-      const raw = feature.properties?.PAVADINIMA || feature.properties?.pavadinima || "";
-      return raw && raw !== "-" ? raw : `Pabaseinis ${index + 1}`;
+      let label;
+      if (fromConfig) label = fromConfig;
+      else {
+        const raw = feature.properties?.PAVADINIMA || feature.properties?.pavadinima || "";
+        label = raw && raw !== "-" ? raw : `Basin polygon ${index + 1}`;
+      }
+      return sanitizeBasinDisplayName(label);
     }
 
     const basinSelect = document.getElementById("basin-select");
     if (basinSelect) {
-      basinSelect.innerHTML = '<option value="">All Lithuania</option>';
-      geojson.features.forEach((f, i) => {
-        const name = getBasinName(f, i);
+      basinSelect.innerHTML = '<option value="">All Lithuania (national charts)</option>';
+      const entries = geojson.features.map((f, i) => ({
+        idx: i,
+        name: getBasinName(f, i),
+      }));
+      entries.sort((a, b) => a.name.localeCompare(b.name, "lt", { sensitivity: "base" }));
+      entries.forEach(({ idx, name }) => {
         const opt = document.createElement("option");
-        opt.value = String(i);
+        opt.value = String(idx);
         opt.textContent = name;
         basinSelect.appendChild(opt);
       });
@@ -374,29 +560,28 @@ function initMap() {
     const layer = L.geoJSON(geojson, {
       pane: "basinOutlinePane",
       interactive: true,
-      style: {
-        className: "basin-outline-path",
-        color: "#1e40af",
-        weight: 1.5,
-        fill: true,
-        fillColor: "#1e40af",
-        fillOpacity: 0.02,
-      },
+      style: (feature) => basinFeatureStyle(feature, geojson),
       onEachFeature: (feature, leafletLayer) => {
         const idx = geojson.features.indexOf(feature);
         leafletLayer._basinIndex = idx;
         leafletLayer.feature = feature;
         const name = getBasinName(feature, idx);
+        const oid = feature.properties?.OBJECTID;
+        const offset =
+          oid === 673 ? L.point(-140, -8) : L.point(0, 0);
         leafletLayer.bindTooltip(name, {
           permanent: true,
           direction: "center",
+          offset,
           className: "basin-label",
           interactive: false,
         });
       },
     }).addTo(map);
     state.map.basinLayer = layer;
-    map.fitBounds(layer.getBounds(), { padding: [20, 20] });
+    state.map.selectedBasinIndex = null;
+    applyBasinOutlineHighlight(null);
+    fitMapToBounds(map, layer.getBounds());
   }).catch((e) => {
     console.warn("Could not load basins config or lt_subbasins.json", e);
   });
@@ -448,17 +633,19 @@ function setupBasinZoom() {
   const basinSelect = document.getElementById("basin-select");
   if (!basinSelect || !state.map.instance) return;
 
-  basinSelect.addEventListener("change", () => {
+    basinSelect.addEventListener("change", () => {
     const map = state.map.instance;
     const idx = basinSelect.value;
 
     if (!idx || idx === "") {
-      map.fitBounds([[53.5, 20.5], [56.6, 26.7]], { padding: [20, 20] });
+      applyBasinOutlineHighlight(null);
+      fitMapToBounds(map, LT_OVERVIEW_BOUNDS);
     } else {
       const i = parseInt(idx, 10);
+      applyBasinOutlineHighlight(Number.isFinite(i) ? i : null);
       const layerForFeature = getBasinLeafletLayer(i);
       if (layerForFeature && layerForFeature.getBounds) {
-        map.fitBounds(layerForFeature.getBounds(), { padding: [56, 56] });
+        fitMapToBounds(map, layerForFeature.getBounds().pad(0.06));
       }
     }
     setTimeout(() => {
@@ -469,14 +656,14 @@ function setupBasinZoom() {
 }
 
 function getGeotiffUrl(datasetKey, year) {
-  const geotiffPaths = {
-    hilda: `../rasters/hilda/geotiff/hilda_${year}.tif`,
-    lucas: `../rasters/lucas/geotiff/lucas_${year}.tif`,
-    hyde: `../rasters/hyde/geotiff/hyde_${year}.tif`,
-    luh2: `../rasters/luh2/geotiff/luh2_${year}.tif`,
-    corine: `../rasters/corine/geotiff/corine_${year}.tif`,
-  };
-  return geotiffPaths[datasetKey] || null;
+  const rel = {
+    hilda: `rasters/hilda/geotiff/hilda_${year}.tif`,
+    lucas: `rasters/lucas/geotiff/lucas_${year}.tif`,
+    hyde: `rasters/hyde/geotiff/hyde_${year}.tif`,
+    luh2: `rasters/luh2/geotiff/luh2_${year}.tif`,
+    corine: `rasters/corine/geotiff/corine_${year}.tif`,
+  }[datasetKey];
+  return rel ? resolveDataFileUrl(rel) : null;
 }
 
 async function getGeorasterCached(datasetKey, year) {
@@ -522,15 +709,21 @@ function csvClassNameToBasinClassId(csvName) {
   return NAME_TO_CLASS_ID[norm] ?? null;
 }
 
+/** Trimmed year from a number input; empty → NaN (never treat "" as 0). */
+function parseYearInputEl(el) {
+  if (!el) return NaN;
+  const t = String(el.value ?? "").trim();
+  if (t === "") return NaN;
+  const n = Number(t);
+  return Number.isFinite(n) ? n : NaN;
+}
+
 function readFilterYearRange() {
   const fromEl = document.getElementById("year-from");
   const toEl = document.getElementById("year-to");
-  const fromY = fromEl?.value !== undefined && fromEl.value !== "" ? Number(fromEl.value) : NaN;
-  const toY = toEl?.value !== undefined && toEl.value !== "" ? Number(toEl.value) : NaN;
-  return {
-    fromY: Number.isFinite(fromY) ? fromY : NaN,
-    toY: Number.isFinite(toY) ? toY : NaN,
-  };
+  const fromY = parseYearInputEl(fromEl);
+  const toY = parseYearInputEl(toEl);
+  return { fromY, toY };
 }
 
 /**
@@ -540,8 +733,8 @@ function readFilterYearRange() {
 function resolveExportYears(datasetKey, basinIndex) {
   const { fromY, toY } = readFilterYearRange();
   const rasterYears = state.rasterYearsByDataset[datasetKey];
-  const csvYears = state.yearsByDataset[datasetKey] || [];
-  const nationalPool = (rasterYears !== null && rasterYears.length ? rasterYears : csvYears)
+  const sliderYears = getYearsForMapSlider(datasetKey);
+  const nationalPool = (rasterYears !== null && rasterYears.length ? rasterYears : sliderYears)
     .filter((y) => Number.isFinite(y))
     .sort((a, b) => a - b);
 
@@ -1026,11 +1219,6 @@ async function writeLandCoverWorkbookExcelJs(filename, byYear, byClass, infoAoa,
 }
 
 /** Lithuania bounds (WGS84), same as map maxBounds — used for full-map export framing */
-const LT_OVERVIEW_BOUNDS = L.latLngBounds(
-  [53.5, 20.5],
-  [56.6, 26.7],
-);
-
 /**
  * After fitBounds / setView, wait for Leaflet + tiles/raster to settle before html2canvas.
  */
@@ -1284,7 +1472,10 @@ function setupMapExport() {
         const kind = btn.getAttribute("data-export");
         closeMenu();
         const ds = document.getElementById("dataset-select")?.value || "map";
-        const yr = document.getElementById("year-label")?.textContent || "";
+        const yEl = document.getElementById("year-label");
+        const yr =
+          (yEl?.dataset?.rasterYear && String(yEl.dataset.rasterYear)) ||
+          (yEl?.textContent?.match(/^(\d{4})/)?.[1] ?? "");
 
         if (kind === "map-png") {
           const map = state.map.instance;
@@ -1323,7 +1514,7 @@ function setupMapExport() {
           const center = map.getCenter();
           const zoom = map.getZoom();
           const bounds = leafletLayer.getBounds().pad(0.06);
-          map.fitBounds(bounds, { padding: [28, 28], animate: false, maxZoom: 18 });
+          fitMapToBounds(map, bounds, { maxZoom: 18 });
           await waitMapSettled(map, 1800, 480);
           await captureAndDownload(`${safe}_${ds}_${yr || "full"}.png`, 3);
           map.setView(center, zoom, { animate: false });
@@ -1338,8 +1529,8 @@ function setupMapExport() {
             await exportLandCoverSummaryXlsx();
           } finally {
             if (hint) {
-              const y = document.getElementById("year-label")?.textContent;
-              hint.textContent = y && y !== "—" ? `Showing raster (GeoTIFF) ${y}` : "";
+              const r = document.getElementById("year-label")?.dataset?.rasterYear;
+              hint.textContent = r ? `GeoTIFF: ${r}` : "";
             }
           }
         }
@@ -1359,14 +1550,18 @@ const CORINE_COLORS = {
 
 // Update raster overlay for given dataset/year.
 // All datasets: GeoTIFF rasters only (no PNG fallback).
-function makeLandcoverRasterLayer(georaster) {
+function makeLandcoverRasterLayer(georaster, map) {
+  const size = map?.getSize?.();
+  const resolution = size
+    ? Math.min(1024, Math.max(384, Math.round(Math.min(size.x, size.y) * 1.15)))
+    : 512;
   return new GeoRasterLayer({
     georaster,
-    opacity: 0.82,
+    opacity: 0.86,
     // Higher resolution + rounded class ids: GeoRasterLayer resamples rasters; without rounding,
     // categorical 1–5 become floats (e.g. 4.37) and CORINE_COLORS[v] is undefined → transparent
     // pixels, so forest/agriculture look like scattered dots while CSV stats stay correct.
-    resolution: 512,
+    resolution,
     pixelValuesToColorFn: (values) => {
       const raw = values[0];
       if (raw == null || !Number.isFinite(raw)) return null;
@@ -1380,13 +1575,18 @@ function makeLandcoverRasterLayer(georaster) {
 
 async function updateRasterOverlay(datasetKey, year) {
   const map = state.map.instance;
-  if (!map || !Number.isFinite(year)) return;
+  if (!map) return;
 
   const hint = document.getElementById("map-overlay-hint");
 
   if (state.map.overlay) {
     map.removeLayer(state.map.overlay);
     state.map.overlay = null;
+  }
+
+  if (!Number.isFinite(year)) {
+    if (hint) hint.textContent = "No raster for the resolved map year.";
+    return;
   }
 
   if (typeof parseGeoraster === "undefined" || typeof GeoRasterLayer === "undefined") {
@@ -1407,7 +1607,7 @@ async function updateRasterOverlay(datasetKey, year) {
       return;
     }
 
-    const layerMain = makeLandcoverRasterLayer(georaster);
+    const layerMain = makeLandcoverRasterLayer(georaster, map);
     layerMain.addTo(map);
     state.map.overlay = layerMain;
 
@@ -1426,7 +1626,7 @@ async function updateRasterOverlay(datasetKey, year) {
 }
 
 async function scanRasterYears(datasetKey) {
-  const candidates = state.yearsByDataset[datasetKey] || [];
+  const candidates = getYearsForMapSlider(datasetKey);
   if (candidates.length === 0) {
     state.rasterYearsByDataset[datasetKey] = [];
     return [];
@@ -1437,33 +1637,56 @@ async function scanRasterYears(datasetKey) {
 
   const found = [];
   const geotiffPaths = {
-    hilda: (y) => `../rasters/hilda/geotiff/hilda_${y}.tif`,
-    lucas: (y) => `../rasters/lucas/geotiff/lucas_${y}.tif`,
-    hyde: (y) => `../rasters/hyde/geotiff/hyde_${y}.tif`,
-    luh2: (y) => `../rasters/luh2/geotiff/luh2_${y}.tif`,
-    corine: (y) => `../rasters/corine/geotiff/corine_${y}.tif`,
+    hilda: (y) => resolveDataFileUrl(`rasters/hilda/geotiff/hilda_${y}.tif`),
+    lucas: (y) => resolveDataFileUrl(`rasters/lucas/geotiff/lucas_${y}.tif`),
+    hyde: (y) => resolveDataFileUrl(`rasters/hyde/geotiff/hyde_${y}.tif`),
+    luh2: (y) => resolveDataFileUrl(`rasters/luh2/geotiff/luh2_${y}.tif`),
+    corine: (y) => resolveDataFileUrl(`rasters/corine/geotiff/corine_${y}.tif`),
   };
   const tifPath = geotiffPaths[datasetKey];
   for (const year of candidates) {
-    if (tifPath) {
-      try {
-        const r = await fetch(tifPath(year), { method: "HEAD" });
-        if (r.ok) found.push(year);
-      } catch (_) {}
+    if (!tifPath) continue;
+    const url = tifPath(year);
+    let ok = false;
+    try {
+      const r = await fetch(url, { method: "HEAD", mode: "cors" });
+      if (r.ok) ok = true;
+    } catch (_) {
+      ok = false;
     }
+    if (!ok) {
+      try {
+        const r2 = await fetch(url, {
+          method: "GET",
+          mode: "cors",
+          cache: "no-store",
+          headers: { Range: "bytes=0-1" },
+        });
+        if (r2.ok || r2.status === 206) ok = true;
+      } catch (_) {
+        ok = false;
+      }
+    }
+    if (ok) found.push(year);
   }
 
-  state.rasterYearsByDataset[datasetKey] = found;
-  if (hint) {
+  let yearsOut = found;
+  if (yearsOut.length === 0 && candidates.length) {
+    yearsOut = candidates.slice();
+    if (hint) {
+      hint.textContent = `GeoTIFF check inconclusive (HEAD often blocked on static hosts). Using ${yearsOut.length} CSV years — map may warn if a file is missing.`;
+    }
+  } else if (hint) {
     hint.textContent =
-      found.length > 0 ? `Found ${found.length} GeoTIFF year(s).` : "No GeoTIFF files found.";
+      yearsOut.length > 0 ? `Found ${yearsOut.length} GeoTIFF year(s).` : "No GeoTIFF files found.";
   }
-  return found;
+  state.rasterYearsByDataset[datasetKey] = yearsOut;
+  return yearsOut;
 }
 
 function collectClasses(datasetRows) {
   if (!datasetRows) return [];
-  const set = new Set(datasetRows.map((r) => r.class_name));
+  const set = new Set(datasetRows.map((r) => r.class_name).filter(Boolean));
   return Array.from(set).sort();
 }
 
@@ -1562,26 +1785,39 @@ function setLegend(datasetKey) {
 function setYearSliderForDataset(datasetKey) {
   const yearSlider = document.getElementById("year-slider");
   const yearLabel = document.getElementById("year-label");
-  // Prefer raster years (only years that actually have PNGs). If we haven't scanned yet,
-  // temporarily fall back to CSV years.
-  const rasterYears = state.rasterYearsByDataset[datasetKey];
-  const years = rasterYears !== null ? rasterYears : (state.yearsByDataset[datasetKey] || []);
+  const csvYears = getYearsForMapSlider(datasetKey);
   if (!yearSlider || !yearLabel) return;
 
-  if (years.length === 0) {
+  if (csvYears.length === 0) {
     yearSlider.min = 0;
     yearSlider.max = 0;
     yearSlider.value = 0;
     yearLabel.textContent = "—";
+    yearLabel.dataset.calendarYear = "";
+    yearLabel.dataset.rasterYear = "";
     return;
   }
 
-  // Slider is an index into the years array
-  yearSlider.min = 0;
-  yearSlider.max = String(years.length - 1);
-  yearSlider.step = 1;
-  yearSlider.value = String(Math.min(Number(yearSlider.value) || 0, years.length - 1));
-  yearLabel.textContent = String(years[Number(yearSlider.value)]);
+  let minY = csvYears[0];
+  let maxY = csvYears[csvYears.length - 1];
+  const { fromY, toY } = readFilterYearRange();
+  if (Number.isFinite(fromY)) minY = Math.max(minY, fromY);
+  if (Number.isFinite(toY)) maxY = Math.min(maxY, toY);
+  if (minY > maxY) [minY, maxY] = [maxY, minY];
+
+  yearSlider.min = String(minY);
+  yearSlider.max = String(maxY);
+  yearSlider.step = "1";
+
+  let cur = Number(yearSlider.value);
+  if (!Number.isFinite(cur)) cur = maxY;
+  cur = Math.min(maxY, Math.max(minY, cur));
+  yearSlider.value = String(cur);
+
+  const ry = pickRasterYearForCalendarYear(cur, getRasterYearsSorted(datasetKey));
+  yearLabel.textContent = formatMapYearLabel(cur, ry);
+  yearLabel.dataset.calendarYear = String(cur);
+  yearLabel.dataset.rasterYear = Number.isFinite(ry) ? String(ry) : "";
 }
 
 function filterByYear(rows, fromYear, toYear) {
@@ -1654,29 +1890,6 @@ function buildHydeLuh2Trend(rows, selectedClass) {
   return { labels, series, yLabel: "% of grid cells" };
 }
 
-function buildLucasTrend(rows, selectedClass) {
-  if (!rows || rows.length === 0) return { labels: [], series: [] };
-  const filtered =
-    selectedClass && selectedClass !== "ALL"
-      ? rows.filter((r) => r.class_name === selectedClass)
-      : rows;
-
-  const byYear = {};
-  filtered.forEach((r) => {
-    if (!byYear[r.year]) byYear[r.year] = 0;
-    byYear[r.year] += r.count;
-  });
-
-  const years = Object.keys(byYear)
-    .map((y) => Number(y))
-    .sort((a, b) => a - b);
-
-  const labels = years;
-  const data = years.map((y) => byYear[y]);
-  return { labels, series: [{ label: selectedClass || "All classes", data }], yLabel: "Grid-cell count" };
-}
-
-
 function renderTrendChart(datasetKey, selectedClass, fromYear, toYear, trendOverride) {
   const ctx = document.getElementById("trend-chart").getContext("2d");
   const useOverride =
@@ -1695,7 +1908,8 @@ function renderTrendChart(datasetKey, selectedClass, fromYear, toYear, trendOver
     yLabel = trendOverride.yLabel || "% of basin cells";
   } else {
     const rows = filterByYear(state[datasetKey], fromYear, toYear);
-    const builder = datasetKey === "hilda" ? buildHildaTrend : buildHydeLuh2Trend;
+    const builder =
+      datasetKey === "hyde" || datasetKey === "luh2" ? buildHydeLuh2Trend : buildHildaTrend;
     const built = builder(rows, selectedClass);
     labels = built.labels;
     series = built.series;
@@ -1866,30 +2080,106 @@ function renderDistributionChart(datasetKey, options = {}) {
   }
 }
 
+/**
+ * Quick summary under the map. When a polygon is selected, `zonalYear` must match zonal CSV keys
+ * (usually the raster year used on the map).
+ */
+function updateBasinKeyMetrics(datasetKey, basinIndex, zonalYear, calendarYear) {
+  const wrap = document.getElementById("basin-key-metrics");
+  const titleEl = document.getElementById("basin-metrics-title");
+  const grid = document.getElementById("basin-metrics-grid");
+  if (!wrap || !grid) return;
+
+  const basinSelect = document.getElementById("basin-select");
+  const basinName = basinSelect?.selectedOptions?.[0]?.textContent?.trim() || "";
+
+  wrap.hidden = false;
+
+  if (!Number.isFinite(basinIndex)) {
+    if (titleEl) titleEl.textContent = "Sub-basin summary";
+    grid.innerHTML =
+      '<p class="basin-metrics-placeholder">Select a <strong>sub-basin</strong> in the left-hand <strong>Filters</strong> panel (dropdown under the dataset/class controls). The map outlines, quick metrics below, and the change table will then use that polygon.</p>';
+    return;
+  }
+
+  const sub =
+    Number.isFinite(calendarYear) &&
+    Number.isFinite(zonalYear) &&
+    calendarYear !== zonalYear
+      ? ` (${calendarYear} → raster ${zonalYear})`
+      : Number.isFinite(zonalYear)
+        ? ` (${zonalYear})`
+        : "";
+  if (titleEl) titleEl.textContent = `${basinName}${sub}`;
+
+  const index = state.subbasinZonal[datasetKey];
+  if (!(index instanceof Map) || !Number.isFinite(zonalYear)) {
+    grid.innerHTML =
+      '<p class="basin-metrics-placeholder">Load zonal statistics (<code>outputs/subbasin_zonal_*.csv</code>) and choose a map year on the slider.</p>';
+    return;
+  }
+
+  const cell = index.get(`${basinIndex}|${zonalYear}`);
+  if (!cell || cell.total <= 0) {
+    grid.innerHTML =
+      '<p class="basin-metrics-placeholder">No classified cells for this sub-basin and raster year (missing export or year not in zonal CSV).</p>';
+    return;
+  }
+
+  const labels = nationalDistributionClassLabels(datasetKey);
+  const shares = [];
+  for (let id = 1; id <= 5; id++) {
+    const c = cell.counts[id] || 0;
+    shares.push({ id, p: (c / cell.total) * 100 });
+  }
+  shares.sort((a, b) => b.p - a.p);
+  const top = shares[0];
+  const second = shares[1];
+  const dominant = labels[(top?.id || 1) - 1] || "—";
+  const maxShare = top?.p ?? 0;
+  const secondLine =
+    second && second.p > 0.05
+      ? `${labels[second.id - 1]} (${second.p.toFixed(1)}%)`
+      : "—";
+
+  const tiles = [
+    `<div class="metric-tile"><span class="metric-k">Classified cells</span><span class="metric-v">${cell.total.toLocaleString()}</span></div>`,
+    `<div class="metric-tile"><span class="metric-k">Dominant class</span><span class="metric-v">${dominant} (${maxShare.toFixed(1)}%)</span></div>`,
+    `<div class="metric-tile"><span class="metric-k">Second-largest class</span><span class="metric-v">${secondLine}</span></div>`,
+    `<div class="metric-tile metric-tile-wide"><span class="metric-k">Note</span><span class="metric-v metric-small">Percentages match the donut: share of raster cells inside the polygon (Python zonal stats).</span></div>`,
+  ];
+  grid.innerHTML = `<div class="basin-metrics-grid-inner">${tiles.join("")}</div>`;
+}
+
 /** Update donut from current slider year (national or sub-basin) without reloading the GeoTIFF. */
 function syncDistributionToMapYear() {
   const datasetSelect = document.getElementById("dataset-select");
-  const yearSlider = document.getElementById("year-slider");
-  if (!datasetSelect || !yearSlider) return;
+  if (!datasetSelect) return;
   const datasetKey = datasetSelect.value;
-  const rasterYears = state.rasterYearsByDataset[datasetKey];
-  const years = rasterYears !== null ? rasterYears : (state.yearsByDataset[datasetKey] || []);
-  const idx = Number(yearSlider.value);
-  const mapYear = Number.isFinite(idx) && years[idx] !== undefined ? Number(years[idx]) : NaN;
+  const { calendarYear, rasterYear } = readYearSliderMapPair(datasetKey);
   const basinVal = document.getElementById("basin-select")?.value;
   const basinIndex = basinVal === "" || basinVal === undefined ? NaN : parseInt(basinVal, 10);
 
+  const dataYearNational = pickDataYearForCalendarYear(calendarYear, datasetKey);
+
   if (!Number.isFinite(basinIndex)) {
-    renderDistributionChart(datasetKey, { mapYear });
+    renderDistributionChart(datasetKey, { mapYear: dataYearNational });
+    updateBasinKeyMetrics(datasetKey, NaN, NaN, calendarYear);
     return;
   }
   const index = state.subbasinZonal[datasetKey];
   if (index instanceof Map) {
-    const distPayload = buildSubbasinDistPayload(index, basinIndex, mapYear, datasetKey);
+    const zonalYear = pickSubbasinZonalYearForCalendar(index, basinIndex, calendarYear, datasetKey);
+    const distPayload = buildSubbasinDistPayload(index, basinIndex, zonalYear, datasetKey);
     renderDistributionChart(datasetKey, { distOverride: distPayload });
   } else {
-    renderDistributionChart(datasetKey, { mapYear });
+    renderDistributionChart(datasetKey, { mapYear: dataYearNational });
   }
+  const zonalForMetrics =
+    index instanceof Map
+      ? pickSubbasinZonalYearForCalendar(index, basinIndex, calendarYear, datasetKey)
+      : rasterYear;
+  updateBasinKeyMetrics(datasetKey, basinIndex, zonalForMetrics, calendarYear);
 }
 
 async function applyFiltersAsync() {
@@ -1903,16 +2193,20 @@ async function applyFiltersAsync() {
 
   const datasetKey = datasetSelect.value;
   const selectedClass = classSelect.value || "ALL";
-  const fromYear = fromInput.value ? Number(fromInput.value) : NaN;
-  const toYear = toInput.value ? Number(toInput.value) : NaN;
-  const rasterYears = state.rasterYearsByDataset[datasetKey];
-  const years = rasterYears !== null ? rasterYears : (state.yearsByDataset[datasetKey] || []);
-  const idx = yearSlider && yearSlider.value ? Number(yearSlider.value) : NaN;
-  const mapYear = Number.isFinite(idx) && years[idx] !== undefined ? Number(years[idx]) : NaN;
-  if (yearLabel) yearLabel.textContent = Number.isFinite(mapYear) ? String(mapYear) : "—";
+  const fromYear = parseYearInputEl(fromInput);
+  const toYear = parseYearInputEl(toInput);
+  /** Keep map slider min/max in sync with filter (full CSV span when From/To are cleared). */
+  setYearSliderForDataset(datasetKey);
+  const { calendarYear, rasterYear } = readYearSliderMapPair(datasetKey);
+  if (yearLabel) {
+    yearLabel.textContent = formatMapYearLabel(calendarYear, rasterYear);
+    yearLabel.dataset.calendarYear = Number.isFinite(calendarYear) ? String(calendarYear) : "";
+    yearLabel.dataset.rasterYear = Number.isFinite(rasterYear) ? String(rasterYear) : "";
+  }
 
   const basinVal = document.getElementById("basin-select")?.value;
   const basinIndex = basinVal === "" || basinVal === undefined ? NaN : parseInt(basinVal, 10);
+  let zonalYearForMetrics = rasterYear;
 
   const trendNote = document.getElementById("trend-scope-note");
   const distNote = document.getElementById("distribution-scope-note");
@@ -1920,9 +2214,11 @@ async function applyFiltersAsync() {
 
   setLegend(datasetKey);
 
-  await updateRasterOverlay(datasetKey, mapYear);
+  await updateRasterOverlay(datasetKey, rasterYear);
   if (seq !== applyFiltersSeq) return;
   if (state.map.instance) state.map.instance.invalidateSize();
+
+  const dataYearNational = pickDataYearForCalendarYear(calendarYear, datasetKey);
 
   if (!Number.isFinite(basinIndex)) {
     if (trendNote) {
@@ -1934,7 +2230,7 @@ async function applyFiltersAsync() {
       distNote.textContent = "";
     }
     renderTrendChart(datasetKey, selectedClass, fromYear, toYear);
-    renderDistributionChart(datasetKey, { mapYear });
+    renderDistributionChart(datasetKey, { mapYear: dataYearNational });
   } else {
     const loaded = await ensureSubbasinZonalLoaded(datasetKey);
     if (seq !== applyFiltersSeq) return;
@@ -1949,18 +2245,21 @@ async function applyFiltersAsync() {
         distNote.textContent = "Showing national totals until sub-basin data is available.";
       }
       renderTrendChart(datasetKey, selectedClass, fromYear, toYear);
-      renderDistributionChart(datasetKey, { mapYear });
+      renderDistributionChart(datasetKey, { mapYear: dataYearNational });
     } else {
       const index = state.subbasinZonal[datasetKey];
+      const zonalYearList = getZonalYearsForBasin(index, basinIndex);
       if (trendNote) {
         trendNote.hidden = false;
         trendNote.textContent = "Trend and distribution use sub-basin aggregates.";
       }
+      const zonalYear = pickSubbasinZonalYearForCalendar(index, basinIndex, calendarYear, datasetKey);
+      zonalYearForMetrics = zonalYear;
       if (distNote) {
         distNote.hidden = false;
-        distNote.textContent = Number.isFinite(mapYear)
-          ? `Distribution for sub-basin and map year ${mapYear}.`
-          : "Select a map year on the slider.";
+        distNote.textContent = Number.isFinite(zonalYear)
+          ? `Sub-basin distribution for zonal year ${zonalYear}${calendarYear !== zonalYear ? ` (map slider: ${calendarYear})` : ""}.`
+          : "Choose a map year on the slider.";
       }
       const trendPayload = buildSubbasinTrendPayload(
         index,
@@ -1968,19 +2267,29 @@ async function applyFiltersAsync() {
         selectedClass,
         fromYear,
         toYear,
-        years,
+        zonalYearList.length ? zonalYearList : getYearsForMapSlider(datasetKey),
         datasetKey,
       );
       renderTrendChart(datasetKey, selectedClass, fromYear, toYear, trendPayload);
-      const distPayload = buildSubbasinDistPayload(index, basinIndex, mapYear, datasetKey);
+      const distPayload = buildSubbasinDistPayload(index, basinIndex, zonalYear, datasetKey);
       renderDistributionChart(datasetKey, { distOverride: distPayload });
     }
   }
 
   if (hint) {
-    const y = document.getElementById("year-label")?.textContent;
-    hint.textContent = y && y !== "—" ? `Showing raster (GeoTIFF) ${y}` : "";
+    if (Number.isFinite(rasterYear)) {
+      hint.textContent =
+        Number.isFinite(calendarYear) && calendarYear !== rasterYear
+          ? `GeoTIFF: ${rasterYear} (slider: ${calendarYear})`
+          : `GeoTIFF: ${rasterYear}`;
+    } else {
+      hint.textContent = "";
+    }
   }
+
+  updateBasinKeyMetrics(datasetKey, basinIndex, zonalYearForMetrics, calendarYear);
+
+  await runChangeDetectionOutput();
 }
 
 function applyFilters() {
@@ -2012,12 +2321,277 @@ function fmtValidation(x, decimals) {
   return Number(x).toFixed(d);
 }
 
-async function loadValidationDashboard() {
+/** @returns {object | null} */
+function getValidationRefBlock(data, refKey) {
+  if (data.references && data.references[refKey]) {
+    return data.references[refKey];
+  }
+  if (refKey === "corine" && Array.isArray(data.national)) {
+    return {
+      national: data.national,
+      subbasin_zonal: data.subbasin_zonal || {},
+      description: data.description,
+      subbasin_note: data.subbasin_note,
+      label: "CORINE CLC",
+      key: "corine",
+    };
+  }
+  return null;
+}
+
+function bindValidationReferenceSelectOnce() {
+  const sel = document.getElementById("validation-reference-select");
+  if (!sel || sel.dataset.bound) return;
+  sel.dataset.bound = "1";
+  sel.addEventListener("change", () => renderValidationRef(sel.value));
+}
+
+function renderValidationRef(refKey) {
+  const data = state.validationMetrics;
   const descEl = document.getElementById("validation-description");
   const errEl = document.getElementById("validation-error");
   const tbody = document.getElementById("validation-summary-body");
   const perDs = document.getElementById("validation-per-dataset");
   const mlNote = document.getElementById("validation-ml-note");
+  const canvas = document.getElementById("validation-rmse-chart");
+  const titleEl = document.getElementById("validation-panel-title");
+  if (!data || !tbody || !canvas || !descEl) return;
+
+  const block = getValidationRefBlock(data, refKey);
+  if (!block) {
+    if (errEl) {
+      errEl.hidden = false;
+      errEl.textContent = `No validation block for reference "${refKey}".`;
+    }
+    return;
+  }
+
+  if (errEl) {
+    errEl.hidden = true;
+    errEl.textContent = "";
+  }
+
+  if (titleEl) {
+    titleEl.textContent = `Validation — ${block.label || refKey}`;
+  }
+
+  const genEl = document.getElementById("validation-generated");
+  if (genEl) {
+    if (data.generated_at) {
+      genEl.hidden = false;
+      const base = `Computed: ${data.generated_at}`;
+      genEl.textContent =
+        refKey === "corine"
+          ? `${base} · CORINE years: ${(data.corine_years || []).join(", ")}`
+          : `${base} · Single GRPK snapshot (national shares); see outputs/grpk_reference_shares.json.`;
+    } else {
+      genEl.hidden = true;
+      genEl.textContent = "";
+    }
+  }
+
+  descEl.replaceChildren();
+  descEl.append(
+    document.createTextNode(
+      block.description ||
+        data.description ||
+        "National shares; RMSE/MAE in share units (0–1).",
+    ),
+  );
+  descEl.append(document.createTextNode(" "));
+  const regen = document.createElement("span");
+  regen.className = "validation-ml-note";
+  regen.append("Regenerate ");
+  const codeEl = document.createElement("code");
+  codeEl.textContent =
+    refKey === "grpk"
+      ? "python analysis/build_grpk_reference.py && python analysis/compute_validation_metrics.py"
+      : "python analysis/compute_validation_metrics.py";
+  regen.append(codeEl);
+  regen.append(" after changing outputs/*.csv.");
+  descEl.append(regen);
+
+  const footEl = document.getElementById("validation-footnotes");
+  if (footEl) {
+    if (refKey === "corine") {
+      footEl.textContent = [
+        "‡ Mean r: average of per-class correlations across years.",
+        block.subbasin_note || "",
+      ]
+        .filter(Boolean)
+        .join(" ");
+    } else {
+      footEl.textContent = [block.subbasin_note || ""].filter(Boolean).join(" ");
+    }
+  }
+
+  const sub = block.subbasin_zonal || {};
+  const labels = [];
+  const rmseVals = [];
+  const barColors = ["#0ea5e9", "#22c55e", "#a855f7", "#f97316", "#6366f1"];
+
+  tbody.innerHTML = "";
+  if (perDs) perDs.innerHTML = "";
+
+  const nationalRows = block.national || [];
+  if (block.error && nationalRows.length === 0) {
+    const tr = document.createElement("tr");
+    const td = document.createElement("td");
+    td.colSpan = 10;
+    td.textContent = block.error;
+    tr.appendChild(td);
+    tbody.appendChild(tr);
+  }
+
+  nationalRows.forEach((row) => {
+    if (row.error) {
+      const tr = document.createElement("tr");
+      const td = document.createElement("td");
+      td.colSpan = 10;
+      td.textContent = `${row.dataset}: ${row.error}`;
+      tr.appendChild(td);
+      tbody.appendChild(tr);
+      return;
+    }
+    labels.push(row.dataset.toUpperCase());
+    rmseVals.push(row.rmse_share_all);
+    const sb = sub[row.dataset];
+    const tr = document.createElement("tr");
+    tr.innerHTML = [
+      `<td>${row.dataset}</td>`,
+      `<td>${(row.years_used || []).join(", ")}</td>`,
+      `<td class="num">${fmtValidation(row.rmse_share_all)}</td>`,
+      `<td class="num">${fmtValidation(row.mae_share_all)}</td>`,
+      `<td class="num">${fmtValidation(row.r2_flat)}</td>`,
+      `<td class="num">${row.mean_pearson_r != null ? fmtValidation(row.mean_pearson_r) : "—"}</td>`,
+      `<td class="num">${fmtValidation(row.cosine_similarity_mean)}</td>`,
+      `<td class="num">${fmtValidation(row.ml_loyo_mean_rmse_rf)}</td>`,
+      `<td class="num">${fmtValidation(row.ml_loyo_mean_rmse_ridge)}</td>`,
+      `<td class="num">${sb ? fmtValidation(sb.mean_rmse_share_vs_corine) : "—"}</td>`,
+    ].join("");
+    tbody.appendChild(tr);
+
+    const det = document.createElement("details");
+    det.className = "validation-details";
+    const summ = document.createElement("summary");
+    summ.textContent = `${row.dataset} — per class (RMSE, MAE, bias pp, r)`;
+    det.appendChild(summ);
+    const tbl = document.createElement("table");
+    tbl.className = "validation-mini-table";
+    const thead = document.createElement("thead");
+    thead.innerHTML =
+      "<tr><th>Class</th><th class='num'>RMSE</th><th class='num'>MAE</th><th class='num'>Bias (pp)</th><th class='num'>r</th></tr>";
+    tbl.appendChild(thead);
+    const tb = document.createElement("tbody");
+    const order = data.class_order || ["Water", "Wetland", "Urban", "Agriculture", "Forest"];
+    const pc = row.per_class || {};
+    const pr = row.pearson_r_by_class || {};
+    const presentList = row.classes_present_in_dataset;
+    const hasPresent = Array.isArray(presentList) && presentList.length > 0;
+    const present = new Set(hasPresent ? presentList : order);
+    let anyAbsent = false;
+    const absentTitle = "No mapped counts for this class in the product CSV.";
+    order.forEach((cls) => {
+      const inProduct = present.has(cls);
+      if (hasPresent && !inProduct) anyAbsent = true;
+      const p = pc[cls] || {};
+      const r = pr[cls];
+      const tr2 = document.createElement("tr");
+      const tdName = document.createElement("td");
+      tdName.textContent = cls;
+      tr2.appendChild(tdName);
+      const addMetric = (val, decimals) => {
+        const td = document.createElement("td");
+        td.className = "num";
+        if (inProduct && val != null && !Number.isNaN(val)) {
+          td.textContent = fmtValidation(val, decimals);
+        } else if (inProduct) {
+          td.textContent = "—";
+        } else {
+          td.textContent = "—";
+          td.classList.add("metric-na");
+          td.title = absentTitle;
+        }
+        tr2.appendChild(td);
+      };
+      addMetric(p.rmse_share);
+      addMetric(p.mae_share);
+      addMetric(p.bias_pp, 2);
+      const tdR = document.createElement("td");
+      tdR.className = "num";
+      if (inProduct) {
+        tdR.textContent = r == null ? "—" : fmtValidation(r);
+      } else {
+        tdR.textContent = "—";
+        tdR.classList.add("metric-na");
+        tdR.title = absentTitle;
+      }
+      tr2.appendChild(tdR);
+      tb.appendChild(tr2);
+    });
+    tbl.appendChild(tb);
+    det.appendChild(tbl);
+    if (anyAbsent) {
+      const note = document.createElement("p");
+      note.className = "validation-mini-footnote";
+      note.textContent =
+        "— = class absent in the product CSV; headline metrics still use a full five-vector (zero for missing classes).";
+      det.appendChild(note);
+    }
+    if (perDs) perDs.appendChild(det);
+  });
+
+  if (mlNote && nationalRows[0] && nationalRows[0].ml_note) {
+    mlNote.textContent = nationalRows[0].ml_note;
+  } else if (mlNote) {
+    mlNote.textContent = "";
+  }
+
+  if (validationRmseChart) validationRmseChart.destroy();
+  validationRmseChart = null;
+  const refLabel = block.label || refKey;
+  if (labels.length > 0) {
+    const ctx = canvas.getContext("2d");
+    validationRmseChart = new Chart(ctx, {
+      type: "bar",
+      data: {
+        labels,
+        datasets: [
+          {
+            label: `RMSE vs ${refLabel} (share 0–1)`,
+            data: rmseVals,
+            backgroundColor: labels.map((_, i) => barColors[i % barColors.length]),
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          title: {
+            display: true,
+            text: `National RMSE vs ${refLabel} (share units)`,
+          },
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            title: { display: true, text: "RMSE" },
+          },
+          x: {
+            title: { display: true, text: "Dataset" },
+          },
+        },
+      },
+    });
+  }
+}
+
+async function loadValidationDashboard() {
+  const descEl = document.getElementById("validation-description");
+  const errEl = document.getElementById("validation-error");
+  const tbody = document.getElementById("validation-summary-body");
   const canvas = document.getElementById("validation-rmse-chart");
   if (!tbody || !canvas || !descEl) return;
 
@@ -2028,197 +2602,18 @@ async function loadValidationDashboard() {
 
   try {
     const resp = await fetch(
-      `../outputs/dashboard_validation_metrics.json?t=${Date.now()}`,
+      `${resolveDataFileUrl("outputs/dashboard_validation_metrics.json")}?t=${Date.now()}`,
       { cache: "no-store" },
     );
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
     const data = await resp.json();
-
-    const genEl = document.getElementById("validation-generated");
-    if (genEl) {
-      if (data.generated_at) {
-        genEl.hidden = false;
-        genEl.textContent = `Computed: ${data.generated_at} · CORINE years: ${(data.corine_years || []).join(", ")}`;
-      } else {
-        genEl.hidden = true;
-        genEl.textContent = "";
-      }
-    }
-
-    descEl.replaceChildren();
-    descEl.append(
-      document.createTextNode(
-        data.description ||
-          "National shares at CORINE snapshot years; RMSE/MAE in share units (0–1).",
-      ),
-    );
-    descEl.append(document.createTextNode(" "));
-    const regen = document.createElement("span");
-    regen.className = "validation-ml-note";
-    regen.append("Regenerate ");
-    const codeEl = document.createElement("code");
-    codeEl.textContent = "python analysis/compute_validation_metrics.py";
-    regen.append(codeEl);
-    regen.append(" after changing outputs/*.csv.");
-    descEl.append(regen);
-
-    const footEl = document.getElementById("validation-footnotes");
-    if (footEl) {
-      footEl.textContent = [
-        "‡ Mean r: average of per-class correlations across years.",
-        data.subbasin_note || "",
-      ]
-        .filter(Boolean)
-        .join(" ");
-    }
-
-    const sub = data.subbasin_zonal || {};
-    const labels = [];
-    const rmseVals = [];
-    const barColors = ["#0ea5e9", "#22c55e", "#a855f7", "#f97316", "#6366f1"];
-
-    tbody.innerHTML = "";
-    if (perDs) perDs.innerHTML = "";
-
-    (data.national || []).forEach((row) => {
-      if (row.error) {
-        const tr = document.createElement("tr");
-        const td = document.createElement("td");
-        td.colSpan = 10;
-        td.textContent = `${row.dataset}: ${row.error}`;
-        tr.appendChild(td);
-        tbody.appendChild(tr);
-        return;
-      }
-      labels.push(row.dataset.toUpperCase());
-      rmseVals.push(row.rmse_share_all);
-      const sb = sub[row.dataset];
-      const tr = document.createElement("tr");
-      tr.innerHTML = [
-        `<td>${row.dataset}</td>`,
-        `<td>${(row.years_used || []).join(", ")}</td>`,
-        `<td class="num">${fmtValidation(row.rmse_share_all)}</td>`,
-        `<td class="num">${fmtValidation(row.mae_share_all)}</td>`,
-        `<td class="num">${fmtValidation(row.r2_flat)}</td>`,
-        `<td class="num">${row.mean_pearson_r != null ? fmtValidation(row.mean_pearson_r) : "—"}</td>`,
-        `<td class="num">${fmtValidation(row.cosine_similarity_mean)}</td>`,
-        `<td class="num">${fmtValidation(row.ml_loyo_mean_rmse_rf)}</td>`,
-        `<td class="num">${fmtValidation(row.ml_loyo_mean_rmse_ridge)}</td>`,
-        `<td class="num">${sb ? fmtValidation(sb.mean_rmse_share_vs_corine) : "—"}</td>`,
-      ].join("");
-      tbody.appendChild(tr);
-
-      const det = document.createElement("details");
-      det.className = "validation-details";
-      const summ = document.createElement("summary");
-      summ.textContent = `${row.dataset} — per class (RMSE, MAE, bias pp, r)`;
-      det.appendChild(summ);
-      const tbl = document.createElement("table");
-      tbl.className = "validation-mini-table";
-      const thead = document.createElement("thead");
-      thead.innerHTML =
-        "<tr><th>Class</th><th class='num'>RMSE</th><th class='num'>MAE</th><th class='num'>Bias (pp)</th><th class='num'>r</th></tr>";
-      tbl.appendChild(thead);
-      const tb = document.createElement("tbody");
-      const order = data.class_order || ["Water", "Wetland", "Urban", "Agriculture", "Forest"];
-      const pc = row.per_class || {};
-      const pr = row.pearson_r_by_class || {};
-      const presentList = row.classes_present_in_dataset;
-      const hasPresent =
-        Array.isArray(presentList) && presentList.length > 0;
-      const present = new Set(hasPresent ? presentList : order);
-      let anyAbsent = false;
-      const absentTitle = "No mapped counts for this class in the product CSV.";
-      order.forEach((cls) => {
-        const inProduct = present.has(cls);
-        if (hasPresent && !inProduct) anyAbsent = true;
-        const p = pc[cls] || {};
-        const r = pr[cls];
-        const tr2 = document.createElement("tr");
-        const tdName = document.createElement("td");
-        tdName.textContent = cls;
-        tr2.appendChild(tdName);
-        const addMetric = (val, decimals) => {
-          const td = document.createElement("td");
-          td.className = "num";
-          if (inProduct && val != null && !Number.isNaN(val)) {
-            td.textContent = fmtValidation(val, decimals);
-          } else if (inProduct) {
-            td.textContent = "—";
-          } else {
-            td.textContent = "—";
-            td.classList.add("metric-na");
-            td.title = absentTitle;
-          }
-          tr2.appendChild(td);
-        };
-        addMetric(p.rmse_share);
-        addMetric(p.mae_share);
-        addMetric(p.bias_pp, 2);
-        const tdR = document.createElement("td");
-        tdR.className = "num";
-        if (inProduct) {
-          tdR.textContent = r == null ? "—" : fmtValidation(r);
-        } else {
-          tdR.textContent = "—";
-          tdR.classList.add("metric-na");
-          tdR.title = absentTitle;
-        }
-        tr2.appendChild(tdR);
-        tb.appendChild(tr2);
-      });
-      tbl.appendChild(tb);
-      det.appendChild(tbl);
-      if (anyAbsent) {
-        const note = document.createElement("p");
-        note.className = "validation-mini-footnote";
-        note.textContent =
-          "— = class absent in the product CSV; headline metrics still use a full five-vector (zero for missing classes).";
-        det.appendChild(note);
-      }
-      if (perDs) perDs.appendChild(det);
-    });
-
-    if (mlNote && data.national && data.national[0] && data.national[0].ml_note) {
-      mlNote.textContent = data.national[0].ml_note;
-    }
-
-    if (validationRmseChart) validationRmseChart.destroy();
-    validationRmseChart = null;
-    if (labels.length > 0) {
-      const ctx = canvas.getContext("2d");
-      validationRmseChart = new Chart(ctx, {
-        type: "bar",
-        data: {
-          labels,
-          datasets: [
-            {
-              label: "RMSE vs CORINE (share units 0–1)",
-              data: rmseVals,
-              backgroundColor: labels.map((_, i) => barColors[i % barColors.length]),
-            },
-          ],
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: { display: false },
-            title: { display: true, text: "National RMSE vs CORINE (share units)" },
-          },
-          scales: {
-            y: {
-              beginAtZero: true,
-              title: { display: true, text: "RMSE" },
-            },
-            x: {
-              title: { display: true, text: "Dataset" },
-            },
-          },
-        },
-      });
-    }
+    state.validationMetrics = data;
+    bindValidationReferenceSelectOnce();
+    const sel = document.getElementById("validation-reference-select");
+    const refKey = sel?.value || "corine";
+    renderValidationRef(refKey);
   } catch (e) {
+    state.validationMetrics = null;
     const genElErr = document.getElementById("validation-generated");
     if (genElErr) {
       genElErr.hidden = true;
@@ -2268,10 +2663,11 @@ async function main() {
 
   yearSlider.addEventListener("input", () => {
     const key = datasetSelect.value;
-    const rasterYears = state.rasterYearsByDataset[key];
-    const years = rasterYears !== null ? rasterYears : (state.yearsByDataset[key] || []);
-    const idx = Number(yearSlider.value);
-    yearLabel.textContent = years[idx] !== undefined ? String(years[idx]) : "—";
+    const { calendarYear, rasterYear } = readYearSliderMapPair(key);
+    yearLabel.textContent = formatMapYearLabel(calendarYear, rasterYear);
+    yearLabel.dataset.calendarYear = Number.isFinite(calendarYear) ? String(calendarYear) : "";
+    yearLabel.dataset.rasterYear = Number.isFinite(rasterYear) ? String(rasterYear) : "";
+    syncDistributionToMapYear();
   });
 
   yearSlider.addEventListener("change", () => {
@@ -2292,6 +2688,110 @@ async function main() {
   setLegend(initialDataset);
   populateClassDropdown(initialDataset);
   applyFilters();
+}
+
+async function runChangeDetectionOutput() {
+  const out = document.getElementById("change-detect-output");
+  if (!out) return;
+  const ds = document.getElementById("dataset-select")?.value || "hilda";
+  const rows = state[ds];
+  const fromInput = document.getElementById("year-from");
+  const toInput = document.getElementById("year-to");
+  const yFrom = parseYearInputEl(fromInput);
+  const yTo = parseYearInputEl(toInput);
+  if (!Number.isFinite(yFrom) || !Number.isFinite(yTo)) {
+    out.innerHTML =
+      "<p>Set <strong>From</strong> and <strong>To</strong> years in Filters, then click <strong>Apply filters</strong> to show the change table.</p>";
+    return;
+  }
+  if (!rows?.length) {
+    out.innerHTML = "<p>No time series loaded for this dataset.</p>";
+    return;
+  }
+
+  const basinSelect = document.getElementById("basin-select");
+  const basinVal = basinSelect?.value;
+  const basinIndex = basinVal === "" || basinVal === undefined ? NaN : parseInt(basinVal, 10);
+  const basinName = basinSelect?.selectedOptions?.[0]?.textContent?.trim() || "";
+  const order = nationalDistributionClassLabels(ds);
+
+  const renderTable = (metaHtml, yA, yB, pa, pb) => {
+    const rowsHtml = order
+      .map((lb) => {
+        const va = pa[lb] ?? 0;
+        const vb = pb[lb] ?? 0;
+        const d = vb - va;
+        const sign = d > 0 ? "+" : "";
+        return `<tr><td>${lb}</td><td class="num">${va.toFixed(1)}%</td><td class="num">${vb.toFixed(1)}%</td><td class="num">${sign}${d.toFixed(1)}%</td></tr>`;
+      })
+      .join("");
+    out.innerHTML = `${metaHtml}<table class="change-detect-table"><thead><tr><th>Class</th><th>${yA}</th><th>${yB}</th><th>Δ</th></tr></thead><tbody>${rowsHtml}</tbody></table>`;
+  };
+
+  if (Number.isFinite(basinIndex)) {
+    await ensureSubbasinZonalLoaded(ds);
+    const index = state.subbasinZonal[ds];
+    if (!(index instanceof Map)) {
+      out.innerHTML = "<p>Zonal statistics are not available for this dataset.</p>";
+      return;
+    }
+    const rA = pickSubbasinZonalYearForCalendar(index, basinIndex, yFrom, ds);
+    const rB = pickSubbasinZonalYearForCalendar(index, basinIndex, yTo, ds);
+    const a = buildSubbasinDistPayload(index, basinIndex, rA, ds);
+    const b = buildSubbasinDistPayload(index, basinIndex, rB, ds);
+    if (!a.labels.length || !b.labels.length) {
+      out.innerHTML = "<p>No sub-basin data for those years (check zonal CSV / raster exports).</p>";
+      return;
+    }
+    const pa = {};
+    const pb = {};
+    a.labels.forEach((lb, i) => {
+      pa[lb] = a.values[i];
+    });
+    b.labels.forEach((lb, i) => {
+      pb[lb] = b.values[i];
+    });
+    const extra =
+      rA !== yFrom || rB !== yTo
+        ? ` Table headers use your filter years (${yFrom}, ${yTo}); values use the nearest sub-basin zonal years <strong>${rA}</strong> and <strong>${rB}</strong> (floor to available zonal exports, same idea as the map year slider).`
+        : "";
+    renderTable(
+      `<p class="change-detect-meta">Sub-basin: <strong>${basinName}</strong>.${extra}</p>`,
+      yFrom,
+      yTo,
+      pa,
+      pb,
+    );
+    return;
+  }
+
+  const dFrom = pickDataYearForCalendarYear(yFrom, ds);
+  const dTo = pickDataYearForCalendarYear(yTo, ds);
+  const a = buildNationalDistributionForYear(rows, dFrom, ds);
+  const b = buildNationalDistributionForYear(rows, dTo, ds);
+  if (!a.labels.length || !b.labels.length) {
+    out.innerHTML = "<p>No national class totals for at least one of those years (after snapping to available CSV years).</p>";
+    return;
+  }
+  const pa = {};
+  const pb = {};
+  a.labels.forEach((lb, i) => {
+    pa[lb] = a.values[i];
+  });
+  b.labels.forEach((lb, i) => {
+    pb[lb] = b.values[i];
+  });
+  const natExtra =
+    dFrom !== yFrom || dTo !== yTo
+      ? ` Filter years ${yFrom}→<strong>${dFrom}</strong>, ${yTo}→<strong>${dTo}</strong> (nearest year with national rows, same as the donut).`
+      : "";
+  renderTable(
+    `<p class="change-detect-meta">National (whole Lithuania), dataset <strong>${ds}</strong>. Δ is the difference between the two percentage columns (percentage points), shown with a % sign.${natExtra}</p>`,
+    dFrom,
+    dTo,
+    pa,
+    pb,
+  );
 }
 
 document.addEventListener("DOMContentLoaded", main);

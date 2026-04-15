@@ -1,0 +1,28 @@
+{
+  "reference": "grpk",
+  "source": "GRPK PLOTAI (PLOTAI_1 + PLOTAI_2 + PLOTAI_3)",
+  "grpk_dir": "C:\\Users\\matas\\Desktop\\LEI\\Data\\GRPK_Open_SHP",
+  "mapping_file": "C:\\Users\\matas\\Desktop\\LEI\\Data\\analysis\\grpk_gkodas_mapping.json",
+  "class_order": [
+    "Water",
+    "Wetland",
+    "Urban",
+    "Agriculture",
+    "Forest"
+  ],
+  "area_totals_m2": {
+    "Water": 6894820337.081365,
+    "Wetland": 86832686.44565834,
+    "Urban": 3287354769.7597117,
+    "Agriculture": 39829938628.632935,
+    "Forest": 21623559054.96653
+  },
+  "shares": [
+    0.09613189460180442,
+    0.0012106755873669479,
+    0.04583435489184239,
+    0.5553338992245441,
+    0.3014891756944421
+  ],
+  "notes": "Area-weighted shares from plot polygons. GKODAS mapped by prefix rules in analysis/grpk_gkodas_mapping.json \u2014 adjust for your interpretation of official classes."
+}

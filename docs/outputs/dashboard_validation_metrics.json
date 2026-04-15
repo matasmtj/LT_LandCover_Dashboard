@@ -1,7 +1,5 @@
 {
-  "reference": "corine",
-  "generated_at": "2026-04-07T06:59:10Z",
-  "description": "National class shares (0\u20131) at CORINE snapshot years where both series exist. RMSE/MAE in share units; bias in percentage points. ML columns: LOYO RMSE predicting each CORINE class from the product\u2019s five shares.",
+  "generated_at": "2026-04-07T12:01:35Z",
   "class_order": [
     "Water",
     "Wetland",
@@ -16,6 +14,865 @@
     2012,
     2018
   ],
+  "references": {
+    "corine": {
+      "key": "corine",
+      "label": "CORINE CLC",
+      "description": "National class shares (0\u20131) at CORINE snapshot years where both series exist. RMSE/MAE in share units; bias in percentage points. ML columns: LOYO RMSE predicting each CORINE class from the product\u2019s five shares.",
+      "national": [
+        {
+          "dataset": "hilda",
+          "n_common_years": 5,
+          "years_used": [
+            1990,
+            2000,
+            2006,
+            2012,
+            2018
+          ],
+          "classes_present_in_dataset": [
+            "Water",
+            "Urban",
+            "Agriculture",
+            "Forest"
+          ],
+          "rmse_share_all": 0.031014920468668737,
+          "mae_share_all": 0.021490504207978968,
+          "mean_abs_bias_pp": 2.149050420797897,
+          "mean_signed_bias_pp": -4.996003610813204e-16,
+          "r2_flat": 0.9827257538397719,
+          "pearson_r_by_class": {
+            "Water": 0.5568894390881317,
+            "Wetland": null,
+            "Urban": 0.6204529221781099,
+            "Agriculture": 0.8533609062244057,
+            "Forest": 0.8414670436603878
+          },
+          "mean_pearson_r": 0.7180425777877588,
+          "cosine_similarity_mean": 0.996839490115339,
+          "per_class": {
+            "Water": {
+              "rmse_share": 0.0050067772458074825,
+              "mae_share": 0.004953478400273841,
+              "bias_pp": -0.4953478400273841
+            },
+            "Wetland": {
+              "rmse_share": 0.008872783225538501,
+              "mae_share": 0.008870539339140966,
+              "bias_pp": -0.8870539339140966
+            },
+            "Urban": {
+              "rmse_share": 0.015147252529661526,
+              "mae_share": 0.014422298016546476,
+              "bias_pp": -1.4422298016546475
+            },
+            "Agriculture": {
+              "rmse_share": 0.058631460205241064,
+              "mae_share": 0.05285773288931197,
+              "bias_pp": 5.285773288931197
+            },
+            "Forest": {
+              "rmse_share": 0.032229566749129565,
+              "mae_share": 0.02634847239462159,
+              "bias_pp": -2.461141713335071
+            }
+          },
+          "ml_loyo_mean_rmse_rf": 0.003466074378231359,
+          "ml_loyo_mean_rmse_ridge": 0.006174112778264677,
+          "ml_note": "LOYO: each CORINE class share predicted from this dataset\u2019s five shares (same years)."
+        },
+        {
+          "dataset": "lucas",
+          "n_common_years": 4,
+          "years_used": [
+            1990,
+            2000,
+            2006,
+            2012
+          ],
+          "classes_present_in_dataset": [
+            "Urban",
+            "Agriculture",
+            "Forest"
+          ],
+          "rmse_share_all": 0.06533788716033737,
+          "mae_share_all": 0.046375844713404946,
+          "mean_abs_bias_pp": 4.637584471340494,
+          "mean_signed_bias_pp": 6.938893903907228e-17,
+          "r2_flat": 0.9238879006204327,
+          "pearson_r_by_class": {
+            "Water": null,
+            "Wetland": null,
+            "Urban": -0.7209228777773904,
+            "Agriculture": 0.6679671614755796,
+            "Forest": 0.6899082066450478
+          },
+          "mean_pearson_r": 0.212317496781079,
+          "cosine_similarity_mean": 0.9872883875788034,
+          "per_class": {
+            "Water": {
+              "rmse_share": 0.01915497184291312,
+              "mae_share": 0.019153489396253942,
+              "bias_pp": -1.9153489396253942
+            },
+            "Wetland": {
+              "rmse_share": 0.00891198783540441,
+              "mae_share": 0.008909623880104042,
+              "bias_pp": -0.8909623880104042
+            },
+            "Urban": {
+              "rmse_share": 0.029425822068113307,
+              "mae_share": 0.029410854577021306,
+              "bias_pp": -2.9410854577021306
+            },
+            "Agriculture": {
+              "rmse_share": 0.12142405560524842,
+              "mae_share": 0.1106860208795521,
+              "bias_pp": 11.06860208795521
+            },
+            "Forest": {
+              "rmse_share": 0.07272675391761263,
+              "mae_share": 0.06371923483409334,
+              "bias_pp": -5.32120530261728
+            }
+          },
+          "ml_loyo_mean_rmse_rf": 0.005059603163389511,
+          "ml_loyo_mean_rmse_ridge": 0.006042788169747347,
+          "ml_note": "LOYO: each CORINE class share predicted from this dataset\u2019s five shares (same years)."
+        },
+        {
+          "dataset": "hyde",
+          "n_common_years": 5,
+          "years_used": [
+            1990,
+            2000,
+            2006,
+            2012,
+            2018
+          ],
+          "classes_present_in_dataset": [
+            "Urban",
+            "Agriculture",
+            "Forest"
+          ],
+          "rmse_share_all": 0.18879360824950303,
+          "mae_share_all": 0.1291334004212482,
+          "mean_abs_bias_pp": 12.91334004212482,
+          "mean_signed_bias_pp": -8.881784197001252e-16,
+          "r2_flat": 0.3599228346967889,
+          "pearson_r_by_class": {
+            "Water": null,
+            "Wetland": null,
+            "Urban": 0.33384231487441396,
+            "Agriculture": 0.5230519301869643,
+            "Forest": 0.31884326312825606
+          },
+          "mean_pearson_r": 0.39191250272987804,
+          "cosine_similarity_mean": 0.9049809528543126,
+          "per_class": {
+            "Water": {
+              "rmse_share": 0.019238092069980648,
+              "mae_share": 0.019236199991742704,
+              "bias_pp": -1.9236199991742704
+            },
+            "Wetland": {
+              "rmse_share": 0.008872783225538501,
+              "mae_share": 0.008870539339140966,
+              "bias_pp": -0.8870539339140966
+            },
+            "Urban": {
+              "rmse_share": 0.02519093651127449,
+              "mae_share": 0.02513080725167203,
+              "bias_pp": -2.5130807251672027
+            },
+            "Agriculture": {
+              "rmse_share": 0.3230032934750262,
+              "mae_share": 0.3228335010531206,
+              "bias_pp": 32.28335010531206
+            },
+            "Forest": {
+              "rmse_share": 0.26981584688940097,
+              "mae_share": 0.2695959544705649,
+              "bias_pp": -26.95959544705649
+            }
+          },
+          "ml_loyo_mean_rmse_rf": 0.004899140373547239,
+          "ml_loyo_mean_rmse_ridge": 0.0062019883503030265,
+          "ml_note": "LOYO: each CORINE class share predicted from this dataset\u2019s five shares (same years)."
+        },
+        {
+          "dataset": "luh2",
+          "n_common_years": 4,
+          "years_used": [
+            1990,
+            2000,
+            2006,
+            2012
+          ],
+          "classes_present_in_dataset": [
+            "Agriculture",
+            "Forest"
+          ],
+          "rmse_share_all": 0.10881462146896627,
+          "mae_share_all": 0.0654912830270089,
+          "mean_abs_bias_pp": 6.549128302700891,
+          "mean_signed_bias_pp": -8.326672684688674e-16,
+          "r2_flat": 0.788895233479103,
+          "pearson_r_by_class": {
+            "Water": null,
+            "Wetland": null,
+            "Urban": null,
+            "Agriculture": 0.8426648131060825,
+            "Forest": 0.8558052910080196
+          },
+          "mean_pearson_r": 0.8492350520570511,
+          "cosine_similarity_mean": 0.9422481641691904,
+          "per_class": {
+            "Water": {
+              "rmse_share": 0.01915497184291312,
+              "mae_share": 0.019153489396253942,
+              "bias_pp": -1.9153489396253942
+            },
+            "Wetland": {
+              "rmse_share": 0.00891198783540441,
+              "mae_share": 0.008909623880104042,
+              "bias_pp": -0.8909623880104042
+            },
+            "Urban": {
+              "rmse_share": 0.03299841686434221,
+              "mae_share": 0.0329940960323686,
+              "bias_pp": -3.2994096032368603
+            },
+            "Agriculture": {
+              "rmse_share": 0.14763494879263175,
+              "mae_share": 0.11887178665624616,
+              "bias_pp": -8.417748207866028
+            },
+            "Forest": {
+              "rmse_share": 0.18939851935306934,
+              "mae_share": 0.14752741917007178,
+              "bias_pp": 14.523469138738681
+            }
+          },
+          "ml_loyo_mean_rmse_rf": 0.004663875726414279,
+          "ml_loyo_mean_rmse_ridge": 0.005804927146907642,
+          "ml_note": "LOYO: each CORINE class share predicted from this dataset\u2019s five shares (same years)."
+        }
+      ],
+      "subbasin_zonal": {
+        "hilda": {
+          "year": 2018,
+          "mean_rmse_share_vs_corine": 0.04332533751221015
+        },
+        "hyde": {
+          "year": 2018,
+          "mean_rmse_share_vs_corine": 0.20132124599852336
+        }
+      },
+      "subbasin_note": "Sub-basins: mean RMSE of five-class vectors vs CORINE (2018) when zonal CSVs exist."
+    },
+    "grpk": {
+      "key": "grpk",
+      "label": "GRPK (cadastre) PLOTAI",
+      "description": "National class shares (0\u20131) from each product year vs a **fixed** GRPK PLOTAI snapshot (area-weighted GKODAS\u21925-class mapping). Not aligned in time; interpret as agreement with cadastre land use, not pixel-level accuracy.",
+      "national": [
+        {
+          "dataset": "hilda",
+          "n_common_years": 111,
+          "years_used": [
+            1910,
+            1911,
+            1912,
+            1913,
+            1914,
+            1915,
+            1916,
+            1917,
+            1918,
+            1919,
+            1920,
+            1921,
+            1922,
+            1923,
+            1924,
+            1925,
+            1926,
+            1927,
+            1928,
+            1929,
+            1930,
+            1931,
+            1932,
+            1933,
+            1934,
+            1935,
+            1936,
+            1937,
+            1938,
+            1939,
+            1940,
+            1941,
+            1942,
+            1943,
+            1944,
+            1945,
+            1946,
+            1947,
+            1948,
+            1949,
+            1950,
+            1951,
+            1952,
+            1953,
+            1954,
+            1955,
+            1956,
+            1957,
+            1958,
+            1959,
+            1960,
+            1961,
+            1962,
+            1963,
+            1964,
+            1965,
+            1966,
+            1967,
+            1968,
+            1969,
+            1970,
+            1971,
+            1972,
+            1973,
+            1974,
+            1975,
+            1976,
+            1977,
+            1978,
+            1979,
+            1980,
+            1981,
+            1982,
+            1983,
+            1984,
+            1985,
+            1986,
+            1987,
+            1988,
+            1989,
+            1990,
+            1991,
+            1992,
+            1993,
+            1994,
+            1995,
+            1996,
+            1997,
+            1998,
+            1999,
+            2000,
+            2001,
+            2002,
+            2003,
+            2004,
+            2005,
+            2006,
+            2007,
+            2008,
+            2009,
+            2010,
+            2011,
+            2012,
+            2013,
+            2014,
+            2015,
+            2016,
+            2017,
+            2018,
+            2019,
+            2020
+          ],
+          "classes_present_in_dataset": [
+            "Water",
+            "Urban",
+            "Agriculture",
+            "Forest"
+          ],
+          "rmse_share_all": 0.09169853040462016,
+          "mae_share_all": 0.06889981688476403,
+          "mean_abs_bias_pp": 6.889981688476403,
+          "mean_signed_bias_pp": 1.1752360846257286e-16,
+          "r2_flat": 0.8003983626636251,
+          "pearson_r_by_class": {
+            "Water": null,
+            "Wetland": null,
+            "Urban": null,
+            "Agriculture": null,
+            "Forest": null
+          },
+          "mean_pearson_r": null,
+          "cosine_similarity_mean": 0.9749251971977702,
+          "per_class": {
+            "Water": {
+              "rmse_share": 0.08309104133011709,
+              "mae_share": 0.08308415398428919,
+              "bias_pp": -8.308415398428918
+            },
+            "Wetland": {
+              "rmse_share": 0.0012106755873669476,
+              "mae_share": 0.0012106755873669483,
+              "bias_pp": -0.12106755873669484
+            },
+            "Urban": {
+              "rmse_share": 0.03700079261158778,
+              "mae_share": 0.03641936188313423,
+              "bias_pp": -3.641936188313423
+            },
+            "Agriculture": {
+              "rmse_share": 0.17312561030690654,
+              "mae_share": 0.16599304839684217,
+              "bias_pp": 16.59930483968422
+            },
+            "Forest": {
+              "rmse_share": 0.061611524158306355,
+              "mae_share": 0.057791844572187556,
+              "bias_pp": -4.527885694205181
+            }
+          },
+          "ml_loyo_mean_rmse_rf": null,
+          "ml_loyo_mean_rmse_ridge": null,
+          "ml_note": "N/A \u2014 fixed GRPK PLOTAI reference (not leave-one-year-out vs time-varying ref)."
+        },
+        {
+          "dataset": "lucas",
+          "n_common_years": 66,
+          "years_used": [
+            1950,
+            1951,
+            1952,
+            1953,
+            1954,
+            1955,
+            1956,
+            1957,
+            1958,
+            1959,
+            1960,
+            1961,
+            1962,
+            1963,
+            1964,
+            1965,
+            1966,
+            1967,
+            1968,
+            1969,
+            1970,
+            1971,
+            1972,
+            1973,
+            1974,
+            1975,
+            1976,
+            1977,
+            1978,
+            1979,
+            1980,
+            1981,
+            1982,
+            1983,
+            1984,
+            1985,
+            1986,
+            1987,
+            1988,
+            1989,
+            1990,
+            1991,
+            1992,
+            1993,
+            1994,
+            1995,
+            1996,
+            1997,
+            1998,
+            1999,
+            2000,
+            2001,
+            2002,
+            2003,
+            2004,
+            2005,
+            2006,
+            2007,
+            2008,
+            2009,
+            2010,
+            2011,
+            2012,
+            2013,
+            2014,
+            2015
+          ],
+          "classes_present_in_dataset": [
+            "Urban",
+            "Agriculture",
+            "Forest"
+          ],
+          "rmse_share_all": 0.115374075125593,
+          "mae_share_all": 0.08672075063554195,
+          "mean_abs_bias_pp": 8.672075063554194,
+          "mean_signed_bias_pp": -3.5745817080734206e-17,
+          "r2_flat": 0.6840227510513854,
+          "pearson_r_by_class": {
+            "Water": null,
+            "Wetland": null,
+            "Urban": null,
+            "Agriculture": null,
+            "Forest": null
+          },
+          "mean_pearson_r": null,
+          "cosine_similarity_mean": 0.9622255043702214,
+          "per_class": {
+            "Water": {
+              "rmse_share": 0.09613189460180442,
+              "mae_share": 0.09613189460180442,
+              "bias_pp": -9.613189460180442
+            },
+            "Wetland": {
+              "rmse_share": 0.0012106755873669479,
+              "mae_share": 0.0012106755873669476,
+              "bias_pp": -0.12106755873669477
+            },
+            "Urban": {
+              "rmse_share": 0.04229789054825991,
+              "mae_share": 0.04229287615741988,
+              "bias_pp": -4.229287615741988
+            },
+            "Agriculture": {
+              "rmse_share": 0.21633219514818597,
+              "mae_share": 0.2059002727042254,
+              "bias_pp": 20.59002727042254
+            },
+            "Forest": {
+              "rmse_share": 0.09340422344762699,
+              "mae_share": 0.08806803412689314,
+              "bias_pp": -6.62648263576341
+            }
+          },
+          "ml_loyo_mean_rmse_rf": null,
+          "ml_loyo_mean_rmse_ridge": null,
+          "ml_note": "N/A \u2014 fixed GRPK PLOTAI reference (not leave-one-year-out vs time-varying ref)."
+        },
+        {
+          "dataset": "hyde",
+          "n_common_years": 76,
+          "years_used": [
+            1900,
+            1910,
+            1920,
+            1930,
+            1940,
+            1950,
+            1951,
+            1952,
+            1953,
+            1954,
+            1955,
+            1956,
+            1957,
+            1958,
+            1959,
+            1960,
+            1961,
+            1962,
+            1963,
+            1964,
+            1965,
+            1966,
+            1967,
+            1968,
+            1969,
+            1970,
+            1971,
+            1972,
+            1973,
+            1974,
+            1975,
+            1976,
+            1977,
+            1978,
+            1979,
+            1980,
+            1981,
+            1982,
+            1983,
+            1984,
+            1985,
+            1986,
+            1987,
+            1988,
+            1989,
+            1990,
+            1991,
+            1992,
+            1993,
+            1994,
+            1995,
+            1996,
+            1997,
+            1998,
+            1999,
+            2000,
+            2001,
+            2002,
+            2003,
+            2004,
+            2005,
+            2006,
+            2007,
+            2008,
+            2009,
+            2010,
+            2011,
+            2012,
+            2013,
+            2014,
+            2015,
+            2016,
+            2017,
+            2018,
+            2019,
+            2020
+          ],
+          "classes_present_in_dataset": [
+            "Urban",
+            "Agriculture",
+            "Forest"
+          ],
+          "rmse_share_all": 0.2040512961756675,
+          "mae_share_all": 0.15016053432384244,
+          "mean_abs_bias_pp": 15.016053432384243,
+          "mean_signed_bias_pp": -1.679942734630171e-16,
+          "r2_flat": 0.01163339258213214,
+          "pearson_r_by_class": {
+            "Water": null,
+            "Wetland": null,
+            "Urban": null,
+            "Agriculture": null,
+            "Forest": null
+          },
+          "mean_pearson_r": null,
+          "cosine_similarity_mean": 0.8973686930449382,
+          "per_class": {
+            "Water": {
+              "rmse_share": 0.09613189460180441,
+              "mae_share": 0.09613189460180442,
+              "bias_pp": -9.613189460180442
+            },
+            "Wetland": {
+              "rmse_share": 0.0012106755873669479,
+              "mae_share": 0.0012106755873669474,
+              "bias_pp": -0.12106755873669474
+            },
+            "Urban": {
+              "rmse_share": 0.041043764629486626,
+              "mae_share": 0.04093278799750731,
+              "bias_pp": -4.093278799750731
+            },
+            "Agriculture": {
+              "rmse_share": 0.37549091379616145,
+              "mae_share": 0.37540133580960616,
+              "bias_pp": 37.540133580960614
+            },
+            "Forest": {
+              "rmse_share": 0.23719998630122757,
+              "mae_share": 0.2371259776229274,
+              "bias_pp": -23.712597762292738
+            }
+          },
+          "ml_loyo_mean_rmse_rf": null,
+          "ml_loyo_mean_rmse_ridge": null,
+          "ml_note": "N/A \u2014 fixed GRPK PLOTAI reference (not leave-one-year-out vs time-varying ref)."
+        },
+        {
+          "dataset": "luh2",
+          "n_common_years": 116,
+          "years_used": [
+            1900,
+            1901,
+            1902,
+            1903,
+            1904,
+            1905,
+            1906,
+            1907,
+            1908,
+            1909,
+            1910,
+            1911,
+            1912,
+            1913,
+            1914,
+            1915,
+            1916,
+            1917,
+            1918,
+            1919,
+            1920,
+            1921,
+            1922,
+            1923,
+            1924,
+            1925,
+            1926,
+            1927,
+            1928,
+            1929,
+            1930,
+            1931,
+            1932,
+            1933,
+            1934,
+            1935,
+            1936,
+            1937,
+            1938,
+            1939,
+            1940,
+            1941,
+            1942,
+            1943,
+            1944,
+            1945,
+            1946,
+            1947,
+            1948,
+            1949,
+            1950,
+            1951,
+            1952,
+            1953,
+            1954,
+            1955,
+            1956,
+            1957,
+            1958,
+            1959,
+            1960,
+            1961,
+            1962,
+            1963,
+            1964,
+            1965,
+            1966,
+            1967,
+            1968,
+            1969,
+            1970,
+            1971,
+            1972,
+            1973,
+            1974,
+            1975,
+            1976,
+            1977,
+            1978,
+            1979,
+            1980,
+            1981,
+            1982,
+            1983,
+            1984,
+            1985,
+            1986,
+            1987,
+            1988,
+            1989,
+            1990,
+            1991,
+            1992,
+            1993,
+            1994,
+            1995,
+            1996,
+            1997,
+            1998,
+            1999,
+            2000,
+            2001,
+            2002,
+            2003,
+            2004,
+            2005,
+            2006,
+            2007,
+            2008,
+            2009,
+            2010,
+            2011,
+            2012,
+            2013,
+            2014,
+            2015
+          ],
+          "classes_present_in_dataset": [
+            "Agriculture",
+            "Forest"
+          ],
+          "rmse_share_all": 0.1676068899267921,
+          "mae_share_all": 0.1156189546180573,
+          "mean_abs_bias_pp": 11.56189546180573,
+          "mean_signed_bias_pp": -4.976861834526563e-16,
+          "r2_flat": 0.33315778813432273,
+          "pearson_r_by_class": {
+            "Water": null,
+            "Wetland": null,
+            "Urban": null,
+            "Agriculture": null,
+            "Forest": null
+          },
+          "mean_pearson_r": null,
+          "cosine_similarity_mean": 0.9209760402388966,
+          "per_class": {
+            "Water": {
+              "rmse_share": 0.09613189460180444,
+              "mae_share": 0.09613189460180438,
+              "bias_pp": -9.613189460180438
+            },
+            "Wetland": {
+              "rmse_share": 0.0012106755873669479,
+              "mae_share": 0.001210675587366948,
+              "bias_pp": -0.12106755873669481
+            },
+            "Urban": {
+              "rmse_share": 0.045834354891842385,
+              "mae_share": 0.045834354891842385,
+              "bias_pp": -4.583435489184239
+            },
+            "Agriculture": {
+              "rmse_share": 0.29270205727379434,
+              "mae_share": 0.26531462012323137,
+              "bias_pp": 21.907115177108476
+            },
+            "Forest": {
+              "rmse_share": 0.2084280653820061,
+              "mae_share": 0.16960322788604143,
+              "bias_pp": -7.589422669007108
+            }
+          },
+          "ml_loyo_mean_rmse_rf": null,
+          "ml_loyo_mean_rmse_ridge": null,
+          "ml_note": "N/A \u2014 fixed GRPK PLOTAI reference (not leave-one-year-out vs time-varying ref)."
+        }
+      ],
+      "subbasin_zonal": {},
+      "subbasin_note": "Sub-basin: not computed for GRPK in this release.",
+      "error": null
+    }
+  },
+  "reference": "corine",
+  "description": "National class shares (0\u20131) at CORINE snapshot years where both series exist. RMSE/MAE in share units; bias in percentage points. ML columns: LOYO RMSE predicting each CORINE class from the product\u2019s five shares.",
   "national": [
     {
       "dataset": "hilda",

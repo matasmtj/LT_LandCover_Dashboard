@@ -62,7 +62,7 @@
           <span>Sub-basin</span>
           <select id="basin-select">
             <option value="">All Lithuania (national charts)</option>
-            <!-- Populated from lt_subbasins.json; charts use outputs/subbasin_zonal_*.csv if present -->
+            <!-- lt_subbasins.json; charts: outputs/subbasin_zonal_*.csv -->
           </select>
         </label>
 
@@ -76,17 +76,21 @@
 
         <div class="hint">
           <p>Summary tables load from CSV files in <code>outputs/</code>.</p>
+          <p>
+            Choose a <strong>sub-basin</strong> in the dropdown above to align the map outline, quick metrics under the map,
+            the land-cover distribution chart, and the two-year change table. Leave it on “All Lithuania” for national-only views.
+          </p>
         </div>
       </aside>
 
       <section class="main-panel">
         <div class="tabs">
-          <button type="button" class="tab active" data-tab="historical">Historical analysis</button>
-          <button type="button" class="tab" data-tab="validation">Validation vs CORINE</button>
+          <button type="button" class="tab active" data-tab="home">Home</button>
+          <button type="button" class="tab" data-tab="validation">Validation</button>
           <button type="button" class="tab" data-tab="future">Future analysis (placeholder)</button>
         </div>
 
-        <div id="panel-historical" class="tab-panel active" data-panel="historical">
+        <div id="panel-home" class="tab-panel active" data-panel="home">
         <div class="layout-2col">
           <section class="map-panel">
             <h2>Land cover map</h2>
@@ -120,14 +124,22 @@
               </label>
             </div>
             <p class="map-note">
-              Base map © OpenStreetMap contributors. Sub-basin boundaries when a basin is selected.
+              Base map © OpenStreetMap contributors. When a sub-basin is selected in Filters, its boundary is drawn on the map.
               The map year slider updates the land cover layer; filters apply to the charts.
             </p>
+            <div id="basin-key-metrics" class="basin-key-metrics" hidden>
+              <h3 id="basin-metrics-title" class="basin-metrics-title"></h3>
+              <div id="basin-metrics-grid" class="basin-metrics-grid"></div>
+            </div>
           </section>
 
           <section class="charts-panel">
             <div class="chart-block chart-block-trend">
               <h2>Trend analysis</h2>
+              <p class="trend-y-note">
+                Lines show <strong>percentage of classified grid cells</strong> per year (national view uses the full raster;
+                sub-basin view uses zonal counts inside the selected polygon). Colours match the map legend.
+              </p>
               <p id="trend-scope-note" class="chart-scope-note" hidden></p>
               <div class="trend-chart-wrap">
                 <canvas id="trend-chart"></canvas>
@@ -136,6 +148,10 @@
 
             <div class="chart-block chart-block-distribution">
               <h2>Land cover distribution (map year)</h2>
+              <p class="trend-y-note">
+                Slices are <strong>percentages of classified grid cells</strong> for the year on the map slider (national
+                or the selected sub-basin when zonal data is loaded).
+              </p>
               <p id="distribution-scope-note" class="chart-scope-note" hidden></p>
               <div class="distribution-chart-wrapper">
                 <div class="distribution-chart-inner">
@@ -148,18 +164,41 @@
         </div>
 
         <section class="additional-insights">
-          <h2>Additional insights</h2>
-          <p>Reserved for extra indicators.</p>
+          <h2>What the dashboard supports</h2>
+          <p>
+            The dashboard supports <strong>exploratory comparison</strong> of land-cover products: map + national or
+            sub-basin shares over time, validation against CORINE or cadastre-based references, and exports. It is meant
+            to complement deeper GIS or modelling work, not replace pixel-level accuracy assessment. Raster edges follow
+            the native cell size of each product; smoothing or gap-filling along the country outline would need
+            offline geoprocessing (e.g. mask + focal fill in a GIS), not something the web map can do reliably.
+          </p>
+          <h3 class="insights-subh">Class change between two years</h3>
+          <p class="insights-note">
+            The table below updates when you click <strong>Apply filters</strong>. Set <strong>From / To</strong> years and
+            optionally a <strong>sub-basin</strong> in Filters. With no sub-basin, national shares are compared; with a
+            sub-basin selected, zonal percentages from the pre-computed CSV are used. Column <strong>Δ</strong> is the
+            difference in percentage points between the two year columns (shown with a % sign).
+          </p>
+          <div id="change-detect-output" class="change-detect-output" aria-live="polite"></div>
         </section>
         </div>
 
         <div id="panel-validation" class="tab-panel" data-panel="validation">
-          <h2>Validation vs CORINE</h2>
+          <h2 id="validation-panel-title">Validation</h2>
+          <p class="validation-toolbar">
+            <label>
+              Reference
+              <select id="validation-reference-select" aria-label="Validation reference dataset">
+                <option value="corine">CORINE CLC</option>
+                <option value="grpk">GRPK cadastre (PLOTAI)</option>
+              </select>
+            </label>
+          </p>
           <p class="validation-intro" id="validation-description"></p>
           <p class="validation-ml-note" id="validation-generated" hidden></p>
           <p id="validation-error" class="chart-scope-note" hidden></p>
           <div class="validation-chart-wrap">
-            <canvas id="validation-rmse-chart" aria-label="RMSE vs CORINE by dataset"></canvas>
+            <canvas id="validation-rmse-chart" aria-label="National RMSE by dataset vs selected reference"></canvas>
           </div>
           <h3 class="validation-subheading">Summary (national)</h3>
           <div style="overflow-x: auto">
