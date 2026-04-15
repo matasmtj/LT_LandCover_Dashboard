@@ -1,5 +1,26 @@
 {
-  "description": "Display names for Lithuania hydrology polygons (OBJECTID in lt_subbasins.json). Overrides PAVADINIMA when missing or '-'.",
+  "description": "Display names for Lithuania hydrology polygons (OBJECTID in lt_subbasins.json). Overrides PAVADINIMA when missing or '-'. displayOrderByObjectId follows the official basin table order (Nemunas…Prieglius); two Šventosios polygons after Žeimenos; Bartuvos (676) is not in that table and is listed after Ventos.",
+  "displayOrderByObjectId": [
+    "673",
+    "674",
+    "677",
+    "679",
+    "689",
+    "682",
+    "686",
+    "684",
+    "675",
+    "685",
+    "680",
+    "687",
+    "678",
+    "676",
+    "688",
+    "690",
+    "691",
+    "681",
+    "683"
+  ],
   "namesByObjectId": {
     "673": "Mažųjų Nemuno intakų",
     "674": "Merkio",

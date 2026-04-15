@@ -548,7 +548,21 @@ function initMap() {
         idx: i,
         name: getBasinName(f, i),
       }));
-      entries.sort((a, b) => a.name.localeCompare(b.name, "lt", { sensitivity: "base" }));
+      const orderList = config?.displayOrderByObjectId;
+      const rank =
+        Array.isArray(orderList) && orderList.length
+          ? new Map(orderList.map((id, i) => [String(id), i]))
+          : null;
+      entries.sort((a, b) => {
+        if (rank) {
+          const oa = String(geojson.features[a.idx]?.properties?.OBJECTID ?? "");
+          const ob = String(geojson.features[b.idx]?.properties?.OBJECTID ?? "");
+          const ra = rank.has(oa) ? rank.get(oa) : 9999;
+          const rb = rank.has(ob) ? rank.get(ob) : 9999;
+          if (ra !== rb) return ra - rb;
+        }
+        return a.name.localeCompare(b.name, "lt", { sensitivity: "base" });
+      });
       entries.forEach(({ idx, name }) => {
         const opt = document.createElement("option");
         opt.value = String(idx);
@@ -567,12 +581,10 @@ function initMap() {
         leafletLayer.feature = feature;
         const name = getBasinName(feature, idx);
         const oid = feature.properties?.OBJECTID;
-        const offset =
-          oid === 673 ? L.point(-140, -8) : L.point(0, 0);
         leafletLayer.bindTooltip(name, {
           permanent: true,
           direction: "center",
-          offset,
+          offset: oid === 673 ? L.point(110, -8) : L.point(0, 0),
           className: "basin-label",
           interactive: false,
         });
